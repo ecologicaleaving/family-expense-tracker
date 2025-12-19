@@ -1,0 +1,82 @@
+# Flutter/Dart
+.dart_tool/
+.packages
+build/
+.pub-cache/
+.pub/
+*.iml
+*.ipr
+*.iws
+.idea/
+*.log
+.flutter-plugins
+.flutter-plugins-dependencies
+pubspec.lock
+
+# Claude Code
+.claude/settings.local.json
+
+# Temp files
+nul
+
+# Android
+android/.gradle/
+android/local.properties
+android/*.iml
+android/app/debug/
+android/app/profile/
+android/app/release/
+android/app/build/
+*.apk
+*.aab
+
+# iOS
+ios/.symlinks/
+ios/Pods/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Flutter/Generated.xcconfig
+ios/Flutter/app.flx
+ios/Flutter/flutter_assets/
+ios/ServiceDefinitions.json
+*.xcworkspace
+*.xcuserstate
+DerivedData/
+
+# Supabase
+supabase/.branches/
+supabase/.temp/
+
+# Environment
+.env
+.env.*
+*.env
+
+# IDE
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage
+coverage/
+*.lcov
+
+# Generated files
+*.g.dart
+*.freezed.dart
+*.mocks.dart
+
+# Secrets
+*.jks
+*.keystore
+google-services.json
+GoogleService-Info.plist
+
+# Drift database
+*.sqlite
+*.db

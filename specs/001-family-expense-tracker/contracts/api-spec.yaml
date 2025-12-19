@@ -1,0 +1,717 @@
+openapi: 3.0.3
+info:
+  title: Family Expense Tracker API
+  description: |
+    API contracts for the Family Expense Tracker app.
+    Note: This app uses Supabase, so most operations are direct database calls
+    via the Supabase client. This spec documents the expected data shapes
+    and the Edge Function for OCR processing.
+  version: 1.0.0
+
+servers:
+  - url: https://{project-ref}.supabase.co
+    description: Supabase project
+
+paths:
+  # ============================================
+  # AUTH (Supabase Auth - documented for reference)
+  # ============================================
+  /auth/v1/signup:
+    post:
+      tags: [Auth]
+      summary: Register new user
+      description: Creates a new user account with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignUpRequest'
+      responses:
+        '200':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Invalid email or password
+        '422':
+          description: Email already registered
+
+  /auth/v1/token:
+    post:
+      tags: [Auth]
+      summary: Login user
+      description: Authenticates user and returns session tokens
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Invalid credentials
+
+  /auth/v1/recover:
+    post:
+      tags: [Auth]
+      summary: Request password reset
+      description: Sends password reset email to user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Reset email sent (or silently ignored if email not found)
+
+  # ============================================
+  # PROFILES (Supabase Database)
+  # ============================================
+  /rest/v1/profiles:
+    get:
+      tags: [Profiles]
+      summary: Get user profile
+      description: Returns the authenticated user's profile
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: query
+          schema:
+            type: string
+          description: Filter by user ID (eq.{uuid})
+      responses:
+        '200':
+          description: Profile data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Profile'
+
+    patch:
+      tags: [Profiles]
+      summary: Update user profile
+      description: Updates display name or preferences
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileUpdate'
+      responses:
+        '200':
+          description: Profile updated
+
+  # ============================================
+  # FAMILY GROUPS (Supabase Database)
+  # ============================================
+  /rest/v1/family_groups:
+    get:
+      tags: [Groups]
+      summary: Get user's family group
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Family group data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FamilyGroup'
+
+    post:
+      tags: [Groups]
+      summary: Create new family group
+      description: Creates a group and sets user as admin
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGroupRequest'
+      responses:
+        '201':
+          description: Group created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FamilyGroup'
+
+  # ============================================
+  # INVITES (Supabase Database)
+  # ============================================
+  /rest/v1/invites:
+    get:
+      tags: [Invites]
+      summary: Validate invite code
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+          description: eq.{code}
+      responses:
+        '200':
+          description: Invite details (if valid)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Invite'
+
+    post:
+      tags: [Invites]
+      summary: Create invite code
+      description: Admin creates invite for their group
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInviteRequest'
+      responses:
+        '201':
+          description: Invite created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invite'
+
+  # ============================================
+  # EXPENSES (Supabase Database)
+  # ============================================
+  /rest/v1/expenses:
+    get:
+      tags: [Expenses]
+      summary: List expenses
+      description: Returns expenses for user's group with optional filters
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: group_id
+          in: query
+          schema:
+            type: string
+          description: eq.{uuid}
+        - name: user_id
+          in: query
+          schema:
+            type: string
+          description: eq.{uuid} - filter by user
+        - name: date
+          in: query
+          schema:
+            type: string
+          description: gte.{date} or lte.{date} - date range
+        - name: category
+          in: query
+          schema:
+            type: string
+          description: eq.{category}
+        - name: order
+          in: query
+          schema:
+            type: string
+          description: date.desc (default)
+        - name: limit
+          in: query
+          schema:
+            type: integer
+          description: Pagination limit
+        - name: offset
+          in: query
+          schema:
+            type: integer
+          description: Pagination offset
+      responses:
+        '200':
+          description: List of expenses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Expense'
+
+    post:
+      tags: [Expenses]
+      summary: Create expense
+      description: Records a new expense in the group
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateExpenseRequest'
+      responses:
+        '201':
+          description: Expense created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expense'
+
+    patch:
+      tags: [Expenses]
+      summary: Update expense
+      description: Updates an existing expense (creator only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: string
+          description: eq.{uuid}
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateExpenseRequest'
+      responses:
+        '200':
+          description: Expense updated
+
+    delete:
+      tags: [Expenses]
+      summary: Delete expense
+      description: Deletes expense (creator or admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: string
+          description: eq.{uuid}
+      responses:
+        '204':
+          description: Expense deleted
+
+  # ============================================
+  # EDGE FUNCTIONS
+  # ============================================
+  /functions/v1/scan-receipt:
+    post:
+      tags: [Scanner]
+      summary: Process receipt image with OCR
+      description: |
+        Uploads image to Cloud Vision, extracts text,
+        and returns structured expense data
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image:
+                  type: string
+                  format: binary
+                  description: Receipt image (JPEG/PNG, max 5MB)
+      responses:
+        '200':
+          description: Extracted receipt data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScanReceiptResponse'
+        '400':
+          description: Invalid image or processing failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScanError'
+
+  /functions/v1/dashboard-stats:
+    get:
+      tags: [Dashboard]
+      summary: Get aggregated expense statistics
+      description: Returns pre-computed stats for dashboard
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: period
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [week, month, year]
+        - name: user_id
+          in: query
+          schema:
+            type: string
+          description: Filter by user (optional, defaults to all group)
+      responses:
+        '200':
+          description: Dashboard statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardStats'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # Auth schemas
+    SignUpRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        data:
+          type: object
+          properties:
+            display_name:
+              type: string
+              minLength: 2
+              maxLength: 50
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        grant_type:
+          type: string
+          default: password
+
+    AuthResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        token_type:
+          type: string
+        expires_in:
+          type: integer
+        refresh_token:
+          type: string
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            email:
+              type: string
+
+    # Profile schemas
+    Profile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        display_name:
+          type: string
+        group_id:
+          type: string
+          format: uuid
+          nullable: true
+        is_group_admin:
+          type: boolean
+        keep_name_on_delete:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    ProfileUpdate:
+      type: object
+      properties:
+        display_name:
+          type: string
+          minLength: 2
+          maxLength: 50
+        keep_name_on_delete:
+          type: boolean
+
+    # Group schemas
+    FamilyGroup:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        created_by:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+
+    CreateGroupRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 30
+
+    # Invite schemas
+    Invite:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+          minLength: 6
+          maxLength: 6
+        group_id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        used_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    CreateInviteRequest:
+      type: object
+      required: [group_id]
+      properties:
+        group_id:
+          type: string
+          format: uuid
+        code:
+          type: string
+          description: Auto-generated if not provided
+
+    # Expense schemas
+    Expense:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        group_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+          nullable: true
+        user_display_name:
+          type: string
+        amount:
+          type: number
+          format: decimal
+        currency:
+          type: string
+          default: EUR
+        date:
+          type: string
+          format: date
+        merchant:
+          type: string
+          nullable: true
+        category:
+          type: string
+          enum: [food, utilities, transport, healthcare, entertainment, household, other]
+        notes:
+          type: string
+          nullable: true
+        receipt_image_url:
+          type: string
+          nullable: true
+        is_ai_extracted:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    CreateExpenseRequest:
+      type: object
+      required: [amount, date, category]
+      properties:
+        amount:
+          type: number
+          minimum: 0.01
+          maximum: 99999.99
+        date:
+          type: string
+          format: date
+        merchant:
+          type: string
+          maxLength: 100
+        category:
+          type: string
+          enum: [food, utilities, transport, healthcare, entertainment, household, other]
+        notes:
+          type: string
+          maxLength: 500
+        receipt_image_url:
+          type: string
+        is_ai_extracted:
+          type: boolean
+
+    UpdateExpenseRequest:
+      type: object
+      properties:
+        amount:
+          type: number
+        date:
+          type: string
+          format: date
+        merchant:
+          type: string
+        category:
+          type: string
+        notes:
+          type: string
+
+    # Scanner schemas
+    ScanReceiptResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            amount:
+              type: number
+              nullable: true
+              description: Extracted total amount
+            date:
+              type: string
+              format: date
+              nullable: true
+              description: Extracted date
+            merchant:
+              type: string
+              nullable: true
+              description: Extracted store name
+            confidence:
+              type: object
+              properties:
+                amount:
+                  type: number
+                  description: Confidence score 0-1
+                date:
+                  type: number
+                merchant:
+                  type: number
+            raw_text:
+              type: string
+              description: Full OCR text for debugging
+        image_url:
+          type: string
+          description: Uploaded image URL
+
+    ScanError:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: false
+        error:
+          type: string
+        code:
+          type: string
+          enum: [IMAGE_TOO_LARGE, INVALID_FORMAT, OCR_FAILED, NO_TEXT_FOUND]
+
+    # Dashboard schemas
+    DashboardStats:
+      type: object
+      properties:
+        period:
+          type: string
+        total_amount:
+          type: number
+        expense_count:
+          type: integer
+        by_category:
+          type: array
+          items:
+            type: object
+            properties:
+              category:
+                type: string
+              amount:
+                type: number
+              count:
+                type: integer
+        by_member:
+          type: array
+          items:
+            type: object
+            properties:
+              user_id:
+                type: string
+              display_name:
+                type: string
+              amount:
+                type: number
+              count:
+                type: integer
+        trend:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+              amount:
+                type: number

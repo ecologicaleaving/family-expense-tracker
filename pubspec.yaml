@@ -1,0 +1,64 @@
+name: family_expense_tracker
+description: Family expense tracking app with AI-powered receipt scanning.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # State Management
+  flutter_riverpod: ^2.4.0
+  riverpod_annotation: ^2.3.0
+
+  # Backend - Supabase
+  supabase_flutter: ^2.0.0
+
+  # Local Storage
+  drift: ^2.14.0
+  sqlite3_flutter_libs: ^0.5.0
+  hive_flutter: ^1.1.0
+  flutter_secure_storage: ^9.0.0
+
+  # Camera & Images
+  camera: ^0.10.5
+  image_picker: ^1.0.0
+  image_cropper: ^5.0.0
+  flutter_image_compress: ^2.1.0
+
+  # Charts
+  fl_chart: ^0.65.0
+
+  # Navigation
+  go_router: ^12.0.0
+
+  # UI Helpers
+  intl: ^0.19.0
+
+  # Utils
+  equatable: ^2.0.5
+  dartz: ^0.10.1
+  uuid: ^4.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  riverpod_generator: ^2.3.0
+  build_runner: ^2.4.0
+  drift_dev: ^2.14.0
+  mockito: ^5.4.0
+  integration_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+
+  # Uncomment to add assets
+  # assets:
+  #   - assets/images/
