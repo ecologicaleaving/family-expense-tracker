@@ -48,27 +48,15 @@ class GroupRemoteDataSourceImpl implements GroupRemoteDataSource {
   @override
   Future<FamilyGroupModel> createGroup({required String name}) async {
     try {
-      final userId = _currentUserId;
-
-      // Create the group
+      // Use RPC function to bypass RLS issues
       final groupResponse = await supabaseClient
-          .from('family_groups')
-          .insert({
-            'name': name,
-            'created_by': userId,
-          })
-          .select()
-          .single();
+          .rpc('create_family_group', params: {'group_name': name});
 
-      final group = FamilyGroupModel.fromJson(groupResponse);
+      if (groupResponse == null) {
+        throw const ServerException('Errore nella creazione del gruppo');
+      }
 
-      // Update the user's profile with the group ID
-      await supabaseClient
-          .from('profiles')
-          .update({'group_id': group.id})
-          .eq('id', userId);
-
-      return group;
+      return FamilyGroupModel.fromJson(groupResponse as Map<String, dynamic>);
     } on PostgrestException catch (e) {
       throw ServerException(e.message, e.code);
     } catch (e) {
