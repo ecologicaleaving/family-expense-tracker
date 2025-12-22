@@ -5,9 +5,9 @@ import '../../domain/entities/dashboard_stats_entity.dart';
 import '../models/dashboard_stats_model.dart';
 
 /// Remote data source for dashboard statistics.
-/// Calls the dashboard-stats Edge Function.
+/// Uses RPC function to calculate stats.
 abstract class DashboardRemoteDataSource {
-  /// Fetches dashboard statistics from the Edge Function.
+  /// Fetches dashboard statistics from the database RPC function.
   Future<DashboardStatsModel> getStats({
     required String groupId,
     required DashboardPeriod period,
@@ -15,7 +15,7 @@ abstract class DashboardRemoteDataSource {
   });
 }
 
-/// Implementation of [DashboardRemoteDataSource] using Supabase Edge Functions.
+/// Implementation of [DashboardRemoteDataSource] using Supabase RPC.
 class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
   DashboardRemoteDataSourceImpl({
     required SupabaseClient supabaseClient,
@@ -30,33 +30,28 @@ class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
     String? userId,
   }) async {
     try {
-      final body = <String, dynamic>{
-        'group_id': groupId,
-        'period': period.apiValue,
+      final params = <String, dynamic>{
+        'p_group_id': groupId,
+        'p_period': period.apiValue,
       };
 
       if (userId != null) {
-        body['user_id'] = userId;
+        params['p_user_id'] = userId;
       }
 
-      final response = await _supabaseClient.functions.invoke(
-        'dashboard-stats',
-        body: body,
+      final response = await _supabaseClient.rpc(
+        'get_dashboard_stats',
+        params: params,
       );
 
-      if (response.status != 200) {
-        final errorData = response.data as Map<String, dynamic>?;
-        final errorMessage =
-            errorData?['error'] as String? ?? 'Failed to fetch dashboard stats';
-        throw ServerException(errorMessage);
+      if (response == null) {
+        throw const ServerException('No data returned from dashboard stats');
       }
 
-      final data = response.data as Map<String, dynamic>;
+      final data = response as Map<String, dynamic>;
       return DashboardStatsModel.fromJson(data, period);
-    } on FunctionException catch (e) {
-      throw ServerException(
-        e.details?.toString() ?? 'Edge function error',
-      );
+    } on PostgrestException catch (e) {
+      throw ServerException(e.message);
     } catch (e) {
       if (e is ServerException) rethrow;
       throw ServerException('Failed to fetch dashboard stats: $e');
