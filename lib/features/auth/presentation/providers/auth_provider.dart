@@ -97,6 +97,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String email,
     required String password,
   }) async {
+    print('[AUTH] signInWithEmail called with email: $email');
     state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
 
     final result = await _authRepository.signInWithEmail(
@@ -106,12 +107,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     result.fold(
       (failure) {
+        print('[AUTH] signInWithEmail FAILED: ${failure.message}');
         state = state.copyWith(
           status: AuthStatus.error,
           errorMessage: failure.message,
         );
       },
       (user) {
+        print('[AUTH] signInWithEmail SUCCESS: ${user.email}');
         state = state.copyWith(
           status: AuthStatus.authenticated,
           user: user,

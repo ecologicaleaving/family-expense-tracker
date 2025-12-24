@@ -76,31 +76,46 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String email,
     required String password,
   }) async {
+    print('[DATASOURCE] signInWithEmail starting...');
     try {
+      print('[DATASOURCE] Calling supabase auth.signInWithPassword...');
       final response = await supabaseClient.auth.signInWithPassword(
         email: email,
         password: password,
       );
+      print('[DATASOURCE] Auth response received, user: ${response.user?.id}');
 
       if (response.user == null) {
+        print('[DATASOURCE] User is null!');
         throw const AppAuthException('Credenziali non valide', 'invalid_credentials');
       }
 
       // Fetch profile data
-      final profileResponse = await supabaseClient
-          .from('profiles')
-          .select()
-          .eq('id', response.user!.id)
-          .single();
+      try {
+        print('[DATASOURCE] Fetching profile for user: ${response.user!.id}');
+        final profileResponse = await supabaseClient
+            .from('profiles')
+            .select()
+            .eq('id', response.user!.id)
+            .single();
+        print('[DATASOURCE] Profile fetched successfully');
 
-      return UserModel.fromJson(profileResponse);
+        return UserModel.fromJson(profileResponse);
+      } on PostgrestException catch (e) {
+        // Profile fetch failed - maybe profile doesn't exist
+        print('[DATASOURCE] Profile fetch failed: ${e.message}');
+        throw AppAuthException('Errore profilo: ${e.message}', e.code);
+      }
     } on AuthException catch (e) {
+      print('[DATASOURCE] AuthException: ${e.message}');
       throw AppAuthException(_mapAuthErrorMessage(e.message), e.statusCode);
     } on PostgrestException catch (e) {
-      throw ServerException(e.message, e.code);
+      print('[DATASOURCE] PostgrestException: ${e.message}');
+      throw ServerException('Errore DB: ${e.message}', e.code);
     } catch (e) {
+      print('[DATASOURCE] Unknown error: ${e.runtimeType}: $e');
       if (e is AppAuthException) rethrow;
-      throw ServerException(e.toString());
+      throw ServerException('Errore: ${e.runtimeType}: $e');
     }
   }
 

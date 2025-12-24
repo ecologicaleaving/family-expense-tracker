@@ -6,6 +6,7 @@ import '../../../../app/routes.dart';
 import '../../../dashboard/presentation/screens/dashboard_screen.dart';
 import '../../../expenses/presentation/screens/expense_list_screen.dart';
 import '../../../groups/presentation/screens/group_details_screen.dart';
+import '../../../groups/presentation/providers/group_provider.dart';
 import 'profile_screen.dart';
 
 /// Main navigation screen with bottom navigation bar.
@@ -19,6 +20,15 @@ class MainNavigationScreen extends ConsumerStatefulWidget {
 
 class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
   int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Load group data when the screen is first shown
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(groupProvider.notifier).loadCurrentGroup();
+    });
+  }
 
   final List<Widget> _screens = const [
     DashboardScreen(),

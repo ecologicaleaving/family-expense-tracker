@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app/app.dart';
@@ -10,6 +11,10 @@ const bool kDemoMode = bool.fromEnvironment('DEMO_MODE', defaultValue: false);
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Hive for local caching
+  await Hive.initFlutter();
+  await Hive.openBox<String>('dashboard_cache');
 
   if (!kDemoMode) {
     // Validate environment in development

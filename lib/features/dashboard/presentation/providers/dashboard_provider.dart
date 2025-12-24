@@ -108,6 +108,7 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
   /// Load dashboard stats
   Future<void> loadStats() async {
     if (_groupId == null) return;
+    if (!mounted) return;
 
     state = state.copyWith(status: DashboardStatus.loading, errorMessage: null);
 
@@ -117,6 +118,8 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
       period: state.period,
       userId: _getFilterUserId(),
     );
+
+    if (!mounted) return;
 
     if (cachedStats != null) {
       state = state.copyWith(
@@ -133,11 +136,15 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
         userId: _getFilterUserId(),
       );
 
+      if (!mounted) return;
+
       state = state.copyWith(
         status: DashboardStatus.loaded,
         stats: stats,
       );
     } catch (e) {
+      if (!mounted) return;
+
       // If we have cached data, keep showing it with an error message
       if (state.stats != null) {
         state = state.copyWith(
