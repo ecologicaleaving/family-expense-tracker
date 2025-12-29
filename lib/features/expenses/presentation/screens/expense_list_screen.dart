@@ -8,6 +8,8 @@ import '../../domain/entities/expense_entity.dart';
 
 import '../../../../shared/widgets/error_display.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../groups/presentation/providers/group_provider.dart';
 import '../providers/expense_provider.dart';
 import '../widgets/expense_list_item.dart';
 
@@ -112,6 +114,9 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
       );
     }
 
+    final currentUser = ref.watch(currentUserProvider);
+    final isAdmin = ref.watch(isGroupAdminProvider);
+
     return RefreshIndicator(
       onRefresh: () => ref.read(expenseListProvider.notifier).refresh(),
       child: ListView.separated(
@@ -128,9 +133,11 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
           }
 
           final expense = listState.expenses[index];
+          final canDelete = expense.canDelete(currentUser?.id ?? '', isAdmin);
+
           return Dismissible(
             key: Key(expense.id),
-            direction: DismissDirection.endToStart,
+            direction: canDelete ? DismissDirection.endToStart : DismissDirection.none,
             confirmDismiss: (direction) => _showDeleteConfirmDialog(context),
             onDismissed: (direction) => _handleSwipeDelete(expense),
             background: Container(
