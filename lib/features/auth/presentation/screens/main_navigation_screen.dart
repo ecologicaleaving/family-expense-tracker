@@ -91,6 +91,15 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
                 context.push(AppRoutes.scanReceipt);
               },
             ),
+            ListTile(
+              leading: const Icon(Icons.upload_file_outlined),
+              title: const Text('Carica File'),
+              subtitle: const Text('Carica ricevuta PDF o immagine'),
+              onTap: () {
+                Navigator.pop(context);
+                context.push(AppRoutes.uploadFile);
+              },
+            ),
           ],
         ),
       ),
