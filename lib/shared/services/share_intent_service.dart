@@ -29,7 +29,7 @@ class ShareIntentService {
 
     try {
       // Handle media shared when app is already running
-      _streamSubscription = ReceiveSharingIntent.getMediaStream().listen(
+      _streamSubscription = ReceiveSharingIntent.instance.getMediaStream().listen(
         _handleSharedMedia,
         onError: (error) {
           // Silently handle stream errors
@@ -37,7 +37,7 @@ class ShareIntentService {
       );
 
       // Handle media shared when app was launched via share intent
-      final initialMedia = await ReceiveSharingIntent.getInitialMedia();
+      final initialMedia = await ReceiveSharingIntent.instance.getInitialMedia();
       if (initialMedia.isNotEmpty) {
         await _handleSharedMedia(initialMedia);
       }
@@ -128,7 +128,7 @@ class ShareIntentService {
   /// Should be called after successfully processing a shared image.
   static void reset() {
     try {
-      ReceiveSharingIntent.reset();
+      ReceiveSharingIntent.instance.reset();
     } catch (e) {
       // Ignore reset errors
     }
