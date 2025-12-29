@@ -1,16 +1,54 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app_theme.dart';
 import 'routes.dart';
+import '../features/scanner/presentation/providers/scanner_provider.dart';
+import '../shared/services/share_intent_service.dart';
 
 /// Main application widget.
-class FamilyExpenseTrackerApp extends ConsumerWidget {
+class FamilyExpenseTrackerApp extends ConsumerStatefulWidget {
   const FamilyExpenseTrackerApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<FamilyExpenseTrackerApp> createState() =>
+      _FamilyExpenseTrackerAppState();
+}
+
+class _FamilyExpenseTrackerAppState
+    extends ConsumerState<FamilyExpenseTrackerApp> {
+  @override
+  void initState() {
+    super.initState();
+    _setupShareIntentListener();
+  }
+
+  @override
+  void dispose() {
+    ShareIntentService.setCallback(null);
+    super.dispose();
+  }
+
+  /// Set up listener for incoming shared images from other apps.
+  void _setupShareIntentListener() {
+    ShareIntentService.setCallback(_handleSharedImage);
+  }
+
+  /// Handle an image shared from another app.
+  void _handleSharedImage(Uint8List imageData) {
+    // Set the captured image in scanner provider
+    ref.read(scannerProvider.notifier).setCapturedImage(imageData);
+
+    // Navigate to review scan screen
+    final router = ref.read(routerProvider);
+    router.go('/review-scan');
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final router = ref.watch(routerProvider);
 
     return MaterialApp.router(
