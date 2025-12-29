@@ -118,6 +118,7 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
           return Dismissible(
             key: Key(expense.id),
             direction: DismissDirection.endToStart,
+            confirmDismiss: (direction) => _showDeleteConfirmDialog(context),
             background: Container(
               alignment: Alignment.centerRight,
               padding: const EdgeInsets.only(right: 24),
@@ -134,6 +135,31 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Future<bool?> _showDeleteConfirmDialog(BuildContext context) {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Elimina spesa'),
+        content: const Text(
+          'Sei sicuro di voler eliminare questa spesa? L\'azione non può essere annullata.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Annulla'),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Elimina'),
+          ),
+        ],
       ),
     );
   }
