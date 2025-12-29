@@ -33,7 +33,6 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
   final List<Widget> _screens = const [
     DashboardScreen(),
     ExpenseListScreen(),
-    _ScannerPlaceholder(),
     GroupDetailsScreen(),
     ProfileScreen(),
   ];
@@ -50,11 +49,6 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
       label: 'Spese',
     ),
     NavigationDestination(
-      icon: Icon(Icons.camera_alt_outlined),
-      selectedIcon: Icon(Icons.camera_alt),
-      label: 'Scansiona',
-    ),
-    NavigationDestination(
       icon: Icon(Icons.group_outlined),
       selectedIcon: Icon(Icons.group),
       label: 'Gruppo',
@@ -67,15 +61,40 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
   ];
 
   void _onDestinationSelected(int index) {
-    // Special handling for scanner - it should open as a new screen
-    if (index == 2) {
-      context.push(AppRoutes.scanReceipt);
-      return;
-    }
-
     setState(() {
       _currentIndex = index;
     });
+  }
+
+  void _showAddExpenseOptions() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit_outlined),
+              title: const Text('Inserimento manuale'),
+              subtitle: const Text('Aggiungi una spesa manualmente'),
+              onTap: () {
+                Navigator.pop(context);
+                context.push(AppRoutes.addExpense);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt_outlined),
+              title: const Text('Scansiona scontrino'),
+              subtitle: const Text('Usa la fotocamera per scansionare'),
+              onTap: () {
+                Navigator.pop(context);
+                context.push(AppRoutes.scanReceipt);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -90,25 +109,12 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
         onDestinationSelected: _onDestinationSelected,
         destinations: _destinations,
       ),
-      floatingActionButton: _currentIndex == 1
-          ? FloatingActionButton(
-              onPressed: () => context.push(AppRoutes.addExpense),
-              tooltip: 'Aggiungi spesa',
-              child: const Icon(Icons.add),
-            )
-          : null,
-    );
-  }
-}
-
-/// Placeholder for scanner tab (navigates to camera screen).
-class _ScannerPlaceholder extends StatelessWidget {
-  const _ScannerPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Text('Scanner'),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showAddExpenseOptions,
+        tooltip: 'Aggiungi spesa',
+        shape: const CircleBorder(),
+        child: const Icon(Icons.add),
+      ),
     );
   }
 }
