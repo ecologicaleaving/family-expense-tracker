@@ -21,6 +21,7 @@ import '../features/expenses/presentation/screens/expense_detail_screen.dart';
 import '../features/dashboard/presentation/screens/dashboard_screen.dart';
 import '../features/auth/presentation/screens/main_navigation_screen.dart';
 import '../features/auth/presentation/screens/profile_screen.dart';
+import '../features/upload/presentation/screens/upload_file_screen.dart';
 
 /// Route paths
 class AppRoutes {
@@ -43,6 +44,7 @@ class AppRoutes {
   static const addExpense = '/add-expense';
   static const scanReceipt = '/scan-receipt';
   static const reviewScan = '/review-scan';
+  static const uploadFile = '/upload-file';
   static const expenseDetail = '/expense/:id';
 
   // Dashboard
@@ -165,6 +167,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.reviewScan,
         name: 'reviewScan',
         builder: (context, state) => const ReviewScanScreen(),
+      ),
+
+      // Upload route
+      GoRoute(
+        path: AppRoutes.uploadFile,
+        name: 'uploadFile',
+        builder: (context, state) => const UploadFileScreen(),
       ),
 
       // Dashboard route (standalone, without bottom nav)
