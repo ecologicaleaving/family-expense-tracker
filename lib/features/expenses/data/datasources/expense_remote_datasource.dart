@@ -170,6 +170,9 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
           .single();
       final displayName = profileResponse['display_name'] as String?;
 
+      // Normalize date to UTC date only (no time component)
+      final normalizedDate = DateTime.utc(date.year, date.month, date.day);
+
       final response = await supabaseClient
           .from('expenses')
           .insert({
@@ -179,7 +182,7 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
             'paid_by': userId,
             'paid_by_name': displayName ?? 'Utente',
             'amount': amount,
-            'date': date.toIso8601String().split('T')[0],
+            'date': normalizedDate.toIso8601String().split('T')[0],
             'category': category,
             'merchant': merchant,
             'notes': notes,

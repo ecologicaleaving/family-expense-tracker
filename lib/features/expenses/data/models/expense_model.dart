@@ -44,12 +44,15 @@ class ExpenseModel extends ExpenseEntity {
 
   /// Convert to JSON map for database operations.
   Map<String, dynamic> toJson() {
+    // Normalize date to UTC date only (no time component)
+    final normalizedDate = DateTime.utc(date.year, date.month, date.day);
+
     return {
       'id': id,
       'group_id': groupId,
       'created_by': createdBy,
       'amount': amount,
-      'date': date.toIso8601String().split('T')[0],
+      'date': normalizedDate.toIso8601String().split('T')[0],
       'category': category.value,
       'merchant': merchant,
       'notes': notes,

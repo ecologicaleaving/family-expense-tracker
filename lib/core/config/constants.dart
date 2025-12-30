@@ -10,7 +10,7 @@ enum ExpenseCategory {
   healthcare('healthcare', 'Salute', '🏥', Icons.local_hospital, Colors.red),
   entertainment('entertainment', 'Svago', '🎬', Icons.movie, Colors.purple),
   household('household', 'Casa', '🏠', Icons.home, Colors.teal),
-  altro('altro', 'Altro', '📦', Icons.category, Colors.grey);
+  altro('other', 'Altro', '📦', Icons.category, Colors.grey);
 
   const ExpenseCategory(this.value, this.label, this.emoji, this.icon, this.color);
 

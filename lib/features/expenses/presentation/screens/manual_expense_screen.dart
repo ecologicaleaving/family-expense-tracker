@@ -8,6 +8,7 @@ import '../../../../core/utils/validators.dart';
 import '../../../../shared/widgets/custom_text_field.dart';
 import '../../../../shared/widgets/error_display.dart';
 import '../../../../shared/widgets/primary_button.dart';
+import '../../../dashboard/presentation/providers/dashboard_provider.dart';
 import '../providers/expense_provider.dart';
 import '../widgets/category_selector.dart';
 
@@ -58,6 +59,8 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen> {
 
     if (expense != null && mounted) {
       listNotifier.addExpense(expense);
+      // Refresh dashboard to reflect the new expense
+      ref.read(dashboardProvider.notifier).refresh();
       context.pop(); // Return to previous screen (MainNavigationScreen with Spese tab)
     }
   }

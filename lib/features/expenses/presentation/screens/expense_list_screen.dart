@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,6 +7,7 @@ import '../../domain/entities/expense_entity.dart';
 import '../../../../shared/widgets/error_display.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../dashboard/presentation/providers/dashboard_provider.dart';
 import '../../../groups/presentation/providers/group_provider.dart';
 import '../providers/expense_provider.dart';
 import '../widgets/expense_list_item.dart';
@@ -24,10 +23,6 @@ class ExpenseListScreen extends ConsumerStatefulWidget {
 class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
   final ScrollController _scrollController = ScrollController();
 
-  /// Pending delete state for undo functionality
-  ExpenseEntity? _pendingDelete;
-  Timer? _deleteTimer;
-
   @override
   void initState() {
     super.initState();
@@ -41,11 +36,6 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
   @override
   void dispose() {
     _scrollController.dispose();
-    // Ensure pending delete is executed before disposing
-    if (_deleteTimer != null && _pendingDelete != null) {
-      _deleteTimer?.cancel();
-      _executeFinalDelete(_pendingDelete!.id);
-    }
     super.dispose();
   }
 
@@ -138,7 +128,7 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
           return Dismissible(
             key: Key(expense.id),
             direction: canDelete ? DismissDirection.endToStart : DismissDirection.none,
-            confirmDismiss: (direction) => _showDeleteConfirmDialog(context),
+            // confirmDismiss: (direction) => _showDeleteConfirmDialog(context),
             onDismissed: (direction) => _handleSwipeDelete(expense),
             background: Container(
               alignment: Alignment.centerRight,
@@ -185,70 +175,51 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
     );
   }
 
-  /// Handles the swipe delete with delayed delete pattern for undo capability
-  void _handleSwipeDelete(ExpenseEntity expense) {
-    // Cancel any existing pending delete
-    _deleteTimer?.cancel();
-
-    // Store the expense for potential undo
-    _pendingDelete = expense;
-
-    // Item is already removed from UI by Dismissible widget
-    // We need to update the provider state
+  /// Handles the swipe delete with immediate backend deletion
+  Future<void> _handleSwipeDelete(ExpenseEntity expense) async {
+    // Remove from UI immediately (already done by Dismissible)
     ref.read(expenseListProvider.notifier).removeExpenseFromList(expense.id);
 
-    // Start timer for actual backend deletion
-    _deleteTimer = Timer(const Duration(seconds: 5), () {
-      _executeFinalDelete(expense.id);
-    });
-
-    // Show SnackBar with undo option
+    // Show loading snackbar
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Spesa eliminata'),
-        duration: const Duration(seconds: 5),
-        action: SnackBarAction(
-          label: 'Annulla',
-          onPressed: _undoDelete,
-        ),
+      const SnackBar(
+        content: Text('Eliminazione in corso...'),
+        duration: Duration(seconds: 1),
       ),
     );
-  }
 
-  /// Restores the pending delete expense when undo is pressed
-  void _undoDelete() {
-    _deleteTimer?.cancel();
-    if (_pendingDelete != null) {
-      ref.read(expenseListProvider.notifier).addExpense(_pendingDelete!);
-      _pendingDelete = null;
-    }
-  }
-
-  /// Executes the actual backend deletion
-  Future<void> _executeFinalDelete(String expenseId) async {
-    final expenseToDelete = _pendingDelete;
-
+    // Execute immediate backend deletion
     final success = await ref.read(expenseFormProvider.notifier).deleteExpense(
-          expenseId: expenseId,
+          expenseId: expense.id,
         );
 
-    if (!success && mounted) {
-      // If delete failed, restore the item directly to the list
-      // This works even when network is unavailable (no refresh needed)
-      if (expenseToDelete != null) {
-        ref.read(expenseListProvider.notifier).addExpense(expenseToDelete);
-      }
-      // Show error SnackBar
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).clearSnackBars();
+
+    if (success) {
+      // Refresh dashboard to reflect the deleted expense
+      ref.read(dashboardProvider.notifier).refresh();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Spesa eliminata'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } else {
+      // If delete failed, restore the item to the list
+      ref.read(expenseListProvider.notifier).addExpense(expense);
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Errore durante l\'eliminazione'),
           backgroundColor: Theme.of(context).colorScheme.error,
+          duration: const Duration(seconds: 3),
         ),
       );
     }
-
-    _pendingDelete = null;
   }
 
   void _showFilterDialog(BuildContext context) {
