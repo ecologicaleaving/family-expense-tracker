@@ -360,3 +360,30 @@ final expenseProvider = FutureProvider.family<ExpenseEntity?, String>((ref, expe
   final result = await repository.getExpense(expenseId: expenseId);
   return result.fold((_) => null, (expense) => expense);
 });
+
+/// Provider for recent group expenses (last 10 expenses for the whole group)
+final recentGroupExpensesProvider = FutureProvider<List<ExpenseEntity>>((ref) async {
+  final repository = ref.watch(expenseRepositoryProvider);
+  final result = await repository.getExpenses(limit: 10);
+  return result.fold(
+    (_) => [],
+    (expenses) => expenses,
+  );
+});
+
+/// Provider for recent personal expenses (last 10 expenses created by current user)
+final recentPersonalExpensesProvider = FutureProvider<List<ExpenseEntity>>((ref) async {
+  final repository = ref.watch(expenseRepositoryProvider);
+  final currentUser = Supabase.instance.client.auth.currentUser;
+
+  if (currentUser == null) return [];
+
+  final result = await repository.getExpenses(
+    createdBy: currentUser.id,
+    limit: 10,
+  );
+  return result.fold(
+    (_) => [],
+    (expenses) => expenses,
+  );
+});

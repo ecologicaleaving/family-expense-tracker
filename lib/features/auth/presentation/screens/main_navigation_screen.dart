@@ -5,9 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/routes.dart';
 import '../../../dashboard/presentation/screens/dashboard_screen.dart';
 import '../../../expenses/presentation/screens/expense_list_screen.dart';
-import '../../../groups/presentation/screens/group_details_screen.dart';
 import '../../../groups/presentation/providers/group_provider.dart';
-import 'profile_screen.dart';
+import 'settings_screen.dart';
 
 /// Main navigation screen with bottom navigation bar.
 class MainNavigationScreen extends ConsumerStatefulWidget {
@@ -33,8 +32,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
   final List<Widget> _screens = const [
     DashboardScreen(),
     ExpenseListScreen(),
-    GroupDetailsScreen(),
-    ProfileScreen(),
+    SettingsScreen(),
   ];
 
   final List<NavigationDestination> _destinations = const [
@@ -49,14 +47,9 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
       label: 'Spese',
     ),
     NavigationDestination(
-      icon: Icon(Icons.group_outlined),
-      selectedIcon: Icon(Icons.group),
-      label: 'Gruppo',
-    ),
-    NavigationDestination(
-      icon: Icon(Icons.person_outline),
-      selectedIcon: Icon(Icons.person),
-      label: 'Profilo',
+      icon: Icon(Icons.settings_outlined),
+      selectedIcon: Icon(Icons.settings),
+      label: 'Impostazioni',
     ),
   ];
 

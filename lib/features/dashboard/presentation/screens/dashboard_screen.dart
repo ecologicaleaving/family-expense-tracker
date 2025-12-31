@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../shared/widgets/error_display.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
+import '../../../expenses/presentation/providers/expense_provider.dart';
 import '../../../groups/presentation/providers/group_provider.dart';
 import '../../domain/entities/dashboard_stats_entity.dart';
 import '../providers/dashboard_provider.dart';
@@ -10,6 +11,7 @@ import '../widgets/category_pie_chart.dart';
 import '../widgets/member_breakdown_list.dart';
 import '../widgets/member_filter.dart';
 import '../widgets/period_selector.dart';
+import '../widgets/recent_expenses_list.dart';
 import '../widgets/total_summary_card.dart';
 import '../widgets/trend_bar_chart.dart';
 
@@ -108,7 +110,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   }
 }
 
-class _DashboardContent extends StatelessWidget {
+class _DashboardContent extends ConsumerWidget {
   const _DashboardContent({
     required this.dashboardState,
     required this.members,
@@ -126,7 +128,7 @@ class _DashboardContent extends StatelessWidget {
   final ValueChanged<String?>? onMemberFilterChanged;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     if (dashboardState.status == DashboardStatus.error &&
         dashboardState.stats == null) {
       return ErrorDisplay(
@@ -196,6 +198,30 @@ class _DashboardContent extends StatelessWidget {
                   ],
                 ),
               ),
+
+            // Recent expenses list
+            Consumer(
+              builder: (context, ref, child) {
+                final recentExpensesAsync = isPersonalView
+                    ? ref.watch(recentPersonalExpensesProvider)
+                    : ref.watch(recentGroupExpensesProvider);
+
+                return recentExpensesAsync.when(
+                  data: (expenses) => RecentExpensesList(
+                    expenses: expenses,
+                    title: isPersonalView ? 'Le tue spese recenti' : 'Spese recenti del gruppo',
+                    isLoading: false,
+                    onRefresh: onRefresh,
+                  ),
+                  loading: () => RecentExpensesList(
+                    expenses: const [],
+                    title: isPersonalView ? 'Le tue spese recenti' : 'Spese recenti del gruppo',
+                    isLoading: true,
+                  ),
+                  error: (_, __) => const SizedBox.shrink(),
+                );
+              },
+            ),
 
             // Summary card
             if (stats != null) ...[
