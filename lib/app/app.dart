@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app_theme.dart';
 import 'routes.dart';
 import '../features/scanner/presentation/providers/scanner_provider.dart';
+import '../features/widget/presentation/services/deep_link_handler.dart';
 import '../shared/services/share_intent_service.dart';
 
 /// Main application widget.
@@ -20,16 +21,27 @@ class FamilyExpenseTrackerApp extends ConsumerStatefulWidget {
 
 class _FamilyExpenseTrackerAppState
     extends ConsumerState<FamilyExpenseTrackerApp> {
+  DeepLinkHandler? _deepLinkHandler;
+
   @override
   void initState() {
     super.initState();
     _setupShareIntentListener();
+    _setupDeepLinkHandler();
   }
 
   @override
   void dispose() {
     ShareIntentService.setCallback(null);
+    _deepLinkHandler?.dispose();
     super.dispose();
+  }
+
+  /// Set up deep link handler for widget and other deep links.
+  void _setupDeepLinkHandler() {
+    final router = ref.read(routerProvider);
+    _deepLinkHandler = DeepLinkHandler(router);
+    _deepLinkHandler!.initialize();
   }
 
   /// Set up listener for incoming shared images from other apps.

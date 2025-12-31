@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/config/constants.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../widget/presentation/services/widget_update_service.dart';
 import '../../data/datasources/expense_remote_datasource.dart';
 import '../../data/repositories/expense_repository_impl.dart';
 import '../../domain/entities/expense_entity.dart';
@@ -236,9 +237,13 @@ class ExpenseFormState {
 
 /// Expense form notifier
 class ExpenseFormNotifier extends StateNotifier<ExpenseFormState> {
-  ExpenseFormNotifier(this._expenseRepository) : super(const ExpenseFormState());
+  ExpenseFormNotifier(
+    this._expenseRepository,
+    this._widgetUpdateService,
+  ) : super(const ExpenseFormState());
 
   final ExpenseRepository _expenseRepository;
+  final WidgetUpdateService _widgetUpdateService;
 
   /// Create a new expense
   Future<ExpenseEntity?> createExpense({
@@ -273,6 +278,10 @@ class ExpenseFormNotifier extends StateNotifier<ExpenseFormState> {
           status: ExpenseFormStatus.success,
           expense: expense,
         );
+        // Trigger widget update after successful expense creation
+        _widgetUpdateService.triggerUpdate().catchError((error) {
+          print('Failed to update widget: $error');
+        });
         return expense;
       },
     );
@@ -311,6 +320,10 @@ class ExpenseFormNotifier extends StateNotifier<ExpenseFormState> {
           status: ExpenseFormStatus.success,
           expense: expense,
         );
+        // Trigger widget update after successful expense update
+        _widgetUpdateService.triggerUpdate().catchError((error) {
+          print('Failed to update widget: $error');
+        });
         return expense;
       },
     );
@@ -332,6 +345,10 @@ class ExpenseFormNotifier extends StateNotifier<ExpenseFormState> {
       },
       (_) {
         state = state.copyWith(status: ExpenseFormStatus.success);
+        // Trigger widget update after successful expense deletion
+        _widgetUpdateService.triggerUpdate().catchError((error) {
+          print('Failed to update widget: $error');
+        });
         return true;
       },
     );
@@ -351,7 +368,10 @@ class ExpenseFormNotifier extends StateNotifier<ExpenseFormState> {
 /// Provider for expense form state
 final expenseFormProvider =
     StateNotifierProvider<ExpenseFormNotifier, ExpenseFormState>((ref) {
-  return ExpenseFormNotifier(ref.watch(expenseRepositoryProvider));
+  return ExpenseFormNotifier(
+    ref.watch(expenseRepositoryProvider),
+    ref.watch(widgetUpdateServiceProvider),
+  );
 });
 
 /// Provider for a single expense

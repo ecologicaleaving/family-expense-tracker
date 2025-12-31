@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="@drawable/widget_background">
+
+    <!-- Header: Tap to open dashboard -->
+    <LinearLayout
+        android:id="@+id/budget_display_container"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center_vertical"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="?android:attr/selectableItemBackground">
+
+        <!-- Month label -->
+        <TextView
+            android:id="@+id/month_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Dicembre 2024"
+            android:textSize="14sp"
+            android:textColor="@color/widget_text_secondary"
+            android:fontFamily="sans-serif-medium" />
+
+        <!-- Budget amounts -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="4dp">
+
+            <TextView
+                android:id="@+id/spent_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="€450.00"
+                android:textSize="24sp"
+                android:textColor="@color/widget_text_primary"
+                android:fontFamily="sans-serif-medium" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=" / "
+                android:textSize="18sp"
+                android:textColor="@color/widget_text_secondary"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp" />
+
+            <TextView
+                android:id="@+id/limit_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="€800"
+                android:textSize="18sp"
+                android:textColor="@color/widget_text_secondary" />
+
+            <TextView
+                android:id="@+id/percentage_text"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="56%"
+                android:textSize="16sp"
+                android:textColor="@color/widget_text_secondary"
+                android:gravity="end"
+                android:fontFamily="sans-serif-medium" />
+        </LinearLayout>
+
+        <!-- Progress bar -->
+        <ProgressBar
+            android:id="@+id/budget_progress"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="8dp"
+            android:layout_marginTop="8dp"
+            android:progress="56"
+            android:max="100"
+            android:progressTint="@color/widget_progress_normal"
+            android:progressBackgroundTint="@color/widget_progress_background" />
+    </LinearLayout>
+
+    <!-- Quick action buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="12dp"
+        android:gravity="center">
+
+        <!-- Scan button -->
+        <LinearLayout
+            android:id="@+id/scan_button"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:padding="8dp"
+            android:background="@drawable/widget_button_background"
+            android:clickable="true"
+            android:focusable="true"
+            android:layout_marginEnd="8dp">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_scan"
+                android:tint="@color/widget_button_icon"
+                android:contentDescription="@string/scan_receipt" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/scan"
+                android:textSize="14sp"
+                android:textColor="@color/widget_button_text"
+                android:fontFamily="sans-serif-medium"
+                android:layout_marginStart="6dp" />
+        </LinearLayout>
+
+        <!-- Manual entry button -->
+        <LinearLayout
+            android:id="@+id/manual_button"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:padding="8dp"
+            android:background="@drawable/widget_button_background"
+            android:clickable="true"
+            android:focusable="true"
+            android:layout_marginStart="8dp">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_add"
+                android:tint="@color/widget_button_icon"
+                android:contentDescription="@string/add_expense" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/manual"
+                android:textSize="14sp"
+                android:textColor="@color/widget_button_text"
+                android:fontFamily="sans-serif-medium"
+                android:layout_marginStart="6dp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Last updated timestamp -->
+    <TextView
+        android:id="@+id/last_updated_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Aggiornato ora"
+        android:textSize="11sp"
+        android:textColor="@color/widget_text_tertiary"
+        android:layout_gravity="end"
+        android:layout_marginTop="8dp" />
+</LinearLayout>

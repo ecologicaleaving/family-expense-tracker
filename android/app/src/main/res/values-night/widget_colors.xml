@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark theme colors -->
+    <color name="widget_background">#FF1E1E1E</color>
+    <color name="widget_text_primary">#FFFFFFFF</color>
+    <color name="widget_text_secondary">#FFB0B0B0</color>
+    <color name="widget_text_tertiary">#FF757575</color>
+
+    <color name="widget_button_background">#FF1976D2</color>
+    <color name="widget_button_text">#FFFFFFFF</color>
+    <color name="widget_button_icon">#FFFFFFFF</color>
+
+    <color name="widget_progress_normal">#FF66BB6A</color>
+    <color name="widget_progress_warning">#FFFFA726</color>
+    <color name="widget_progress_critical">#FFEF5350</color>
+    <color name="widget_progress_background">#FF424242</color>
+</resources>

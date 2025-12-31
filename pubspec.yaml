@@ -51,6 +51,10 @@ dependencies:
   # Share Intent
   receive_sharing_intent: ^1.8.0
 
+  # Widget support
+  home_widget: ^0.6.0
+  app_links: ^6.4.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
