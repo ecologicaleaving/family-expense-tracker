@@ -66,6 +66,7 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
     String? merchant,
     String? notes,
     Uint8List? receiptImage,
+    bool isGroupExpense = true,
   }) async {
     try {
       // Create the expense first
@@ -75,6 +76,7 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
         category: category,
         merchant: merchant,
         notes: notes,
+        isGroupExpense: isGroupExpense,
       );
 
       // Upload receipt if provided
@@ -131,6 +133,26 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
     try {
       await remoteDataSource.deleteExpense(expenseId: expenseId);
       return const Right(unit);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, ExpenseEntity>> updateExpenseClassification({
+    required String expenseId,
+    required bool isGroupExpense,
+  }) async {
+    try {
+      final expense = await remoteDataSource.updateExpenseClassification(
+        expenseId: expenseId,
+        isGroupExpense: isGroupExpense,
+      );
+      return Right(expense.toEntity());
+    } on PermissionException catch (e) {
+      return Left(PermissionFailure(e.message));
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));
     } catch (e) {

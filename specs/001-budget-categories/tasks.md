@@ -109,22 +109,22 @@
 
 #### Data Layer
 
-- [ ] T035 [P] [US2] Create lib/features/budgets/data/models/personal_budget_model.dart with JSON serialization
-- [ ] T036 [US2] Add setPersonalBudget and getPersonalBudgetStats methods to lib/features/budgets/domain/repositories/budget_repository.dart
-- [ ] T037 [US2] Add personal budget operations to lib/features/budgets/data/datasources/budget_remote_datasource.dart
-- [ ] T038 [US2] Implement personal budget methods in lib/features/budgets/data/repositories/budget_repository_impl.dart
+- [X] T035 [P] [US2] Create lib/features/budgets/data/models/personal_budget_model.dart with JSON serialization
+- [X] T036 [US2] Add setPersonalBudget and getPersonalBudgetStats methods to lib/features/budgets/domain/repositories/budget_repository.dart
+- [X] T037 [US2] Add personal budget operations to lib/features/budgets/data/datasources/budget_remote_datasource.dart
+- [X] T038 [US2] Implement personal budget methods in lib/features/budgets/data/repositories/budget_repository_impl.dart
 
 #### Business Logic (Providers)
 
-- [ ] T039 [US2] Add personal budget state and calculations to lib/features/budgets/presentation/providers/budget_provider.dart
-- [ ] T040 [US2] Implement personal budget optimistic updates (includes both personal and user's group expenses)
-- [ ] T041 [US2] Add setPersonalBudget action to lib/features/budgets/presentation/providers/budget_actions_provider.dart
+- [X] T039 [US2] Add personal budget state and calculations to lib/features/budgets/presentation/providers/budget_provider.dart
+- [X] T040 [US2] Implement personal budget optimistic updates (includes both personal and user's group expenses)
+- [X] T041 [US2] Add setPersonalBudget action to lib/features/budgets/presentation/providers/budget_actions_provider.dart
 
 #### UI Components
 
-- [ ] T042 [P] [US2] Add personal budget section to lib/features/budgets/presentation/screens/budget_settings_screen.dart
-- [ ] T043 [US2] Create personal dashboard card in lib/features/dashboard/presentation/screens/dashboard_screen.dart with personal budget indicators
-- [ ] T044 [US2] Add personal budget progress bar using existing budget_progress_bar.dart widget
+- [X] T042 [P] [US2] Add personal budget section to lib/features/budgets/presentation/screens/budget_settings_screen.dart
+- [X] T043 [US2] Create personal dashboard card in lib/features/dashboard/presentation/screens/dashboard_screen.dart with personal budget indicators
+- [X] T044 [US2] Add personal budget progress bar using existing budget_progress_bar.dart widget
 
 **Checkpoint**: Users can now manage both group and personal budgets independently. Personal budgets track user's total spending (personal + group expenses).
 
@@ -140,21 +140,21 @@
 
 #### Data Layer & Privacy
 
-- [ ] T045 [US3] Run supabase/migrations/016_add_dual_rls_policies.sql: Replace single SELECT policy with dual policies for group/personal expense privacy
-- [ ] T046 [US3] Add updateExpenseClassification method to lib/features/expenses/domain/repositories/expense_repository.dart
-- [ ] T047 [US3] Implement updateExpenseClassification in lib/features/expenses/data/repositories/expense_repository_impl.dart with RLS-compliant updates
+- [X] T045 [US3] Run supabase/migrations/017_add_dual_rls_policies.sql: Replace single SELECT policy with dual policies for group/personal expense privacy
+- [X] T046 [US3] Add updateExpenseClassification method to lib/features/expenses/domain/repositories/expense_repository.dart
+- [X] T047 [US3] Implement updateExpenseClassification in lib/features/expenses/data/repositories/expense_repository_impl.dart with RLS-compliant updates
 
 #### UI Components
 
-- [ ] T048 [P] [US3] Create lib/features/expenses/presentation/widgets/expense_type_toggle.dart: SegmentedButton for Group/Personal selection
-- [ ] T049 [US3] Add expense_type_toggle to lib/features/expenses/presentation/screens/manual_expense_screen.dart with state management
-- [ ] T050 [US3] Add expense type indicator to lib/features/expenses/presentation/widgets/expense_list_item.dart (icon or label)
-- [ ] T051 [US3] Update expense form submission to include isGroupExpense field
+- [X] T048 [P] [US3] Create lib/features/expenses/presentation/widgets/expense_type_toggle.dart: SegmentedButton for Group/Personal selection
+- [X] T049 [US3] Add expense_type_toggle to lib/features/expenses/presentation/screens/manual_expense_screen.dart with state management
+- [X] T050 [US3] Add expense type indicator to lib/features/expenses/presentation/widgets/expense_list_item.dart (icon or label)
+- [X] T051 [US3] Update expense form submission to include isGroupExpense field
 
 #### Business Logic
 
-- [ ] T052 [US3] Add expense classification change handling to lib/features/budgets/presentation/providers/budget_provider.dart (recalculate budgets)
-- [ ] T053 [US3] Implement optimistic update and rollback for expense classification changes in budget provider
+- [X] T052 [US3] Add expense classification change handling to lib/features/budgets/presentation/providers/budget_provider.dart (recalculate budgets)
+- [X] T053 [US3] Implement optimistic update and rollback for expense classification changes in budget provider
 
 **Checkpoint**: Expenses can now be classified as group or personal. Personal expenses are private. Budget calculations respect classification.
 

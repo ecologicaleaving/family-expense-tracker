@@ -27,6 +27,7 @@ abstract class ExpenseRemoteDataSource {
     required String category,
     String? merchant,
     String? notes,
+    bool isGroupExpense = true,
   });
 
   /// Update an existing expense.
@@ -41,6 +42,12 @@ abstract class ExpenseRemoteDataSource {
 
   /// Delete an expense.
   Future<void> deleteExpense({required String expenseId});
+
+  /// Update expense classification (group or personal).
+  Future<ExpenseModel> updateExpenseClassification({
+    required String expenseId,
+    required bool isGroupExpense,
+  });
 
   /// Upload a receipt image.
   Future<String> uploadReceiptImage({
@@ -153,6 +160,7 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
     required String category,
     String? merchant,
     String? notes,
+    bool isGroupExpense = true,
   }) async {
     try {
       final userId = _currentUserId;
@@ -186,6 +194,7 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
             'category': category,
             'merchant': merchant,
             'notes': notes,
+            'is_group_expense': isGroupExpense,
           })
           .select()
           .single();
@@ -244,6 +253,33 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
           .delete()
           .eq('id', expenseId);
     } on PostgrestException catch (e) {
+      throw ServerException(e.message, e.code);
+    } catch (e) {
+      throw ServerException(e.toString());
+    }
+  }
+
+  @override
+  Future<ExpenseModel> updateExpenseClassification({
+    required String expenseId,
+    required bool isGroupExpense,
+  }) async {
+    try {
+      final response = await supabaseClient
+          .from('expenses')
+          .update({'is_group_expense': isGroupExpense})
+          .eq('id', expenseId)
+          .select()
+          .single();
+
+      return ExpenseModel.fromJson(response);
+    } on PostgrestException catch (e) {
+      // RLS will prevent unauthorized updates
+      if (e.code == '42501' || e.code == 'PGRST301') {
+        throw const PermissionException(
+          'You can only change classification of your own expenses',
+        );
+      }
       throw ServerException(e.message, e.code);
     } catch (e) {
       throw ServerException(e.toString());
