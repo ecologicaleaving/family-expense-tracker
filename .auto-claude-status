@@ -3,23 +3,23 @@
   "spec": "008-expense-editing",
   "state": "building",
   "subtasks": {
-    "completed": 3,
+    "completed": 5,
     "total": 6,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Add Routing",
+    "current": "Integration Testing",
     "id": null,
-    "total": 2
+    "total": 1
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 4,
+    "number": 6,
     "started_at": "2026-01-02T09:27:17.777853"
   },
-  "last_update": "2026-01-02T09:56:27.515508"
+  "last_update": "2026-01-02T10:00:58.200159"
 }

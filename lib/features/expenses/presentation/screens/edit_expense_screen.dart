@@ -7,6 +7,7 @@ import '../../../../core/utils/date_formatter.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../shared/widgets/custom_text_field.dart';
 import '../../../../shared/widgets/error_display.dart';
+import '../../../../shared/widgets/loading_indicator.dart';
 import '../../../../shared/widgets/navigation_guard.dart';
 import '../../../../shared/widgets/primary_button.dart';
 import '../../../dashboard/presentation/providers/dashboard_provider.dart';
@@ -15,20 +16,79 @@ import '../providers/expense_provider.dart';
 import '../widgets/category_selector.dart';
 
 /// Screen for editing an existing expense.
-class EditExpenseScreen extends ConsumerStatefulWidget {
+/// Loads the expense by ID and displays an edit form.
+class EditExpenseScreen extends ConsumerWidget {
   const EditExpenseScreen({
     super.key,
+    required this.expenseId,
+  });
+
+  /// The ID of the expense to edit.
+  final String expenseId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final expenseAsync = ref.watch(expenseProvider(expenseId));
+
+    return expenseAsync.when(
+      data: (expense) {
+        if (expense == null) {
+          return Scaffold(
+            appBar: AppBar(
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => context.pop(),
+              ),
+              title: const Text('Modifica spesa'),
+            ),
+            body: const ErrorDisplay(
+              message: 'Spesa non trovata',
+              icon: Icons.error_outline,
+            ),
+          );
+        }
+        return _EditExpenseForm(expense: expense);
+      },
+      loading: () => Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.pop(),
+          ),
+          title: const Text('Modifica spesa'),
+        ),
+        body: const LoadingIndicator(message: 'Caricamento...'),
+      ),
+      error: (error, _) => Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.pop(),
+          ),
+          title: const Text('Modifica spesa'),
+        ),
+        body: ErrorDisplay(
+          message: error.toString(),
+          onRetry: () => ref.invalidate(expenseProvider(expenseId)),
+        ),
+      ),
+    );
+  }
+}
+
+/// Internal form widget for editing expense.
+class _EditExpenseForm extends ConsumerStatefulWidget {
+  const _EditExpenseForm({
     required this.expense,
   });
 
-  /// The expense to edit.
   final ExpenseEntity expense;
 
   @override
-  ConsumerState<EditExpenseScreen> createState() => _EditExpenseScreenState();
+  ConsumerState<_EditExpenseForm> createState() => _EditExpenseFormState();
 }
 
-class _EditExpenseScreenState extends ConsumerState<EditExpenseScreen>
+class _EditExpenseFormState extends ConsumerState<_EditExpenseForm>
     with UnsavedChangesGuard {
   final _formKey = GlobalKey<FormState>();
   final _amountController = TextEditingController();
