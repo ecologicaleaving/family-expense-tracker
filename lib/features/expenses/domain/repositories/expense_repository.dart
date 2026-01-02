@@ -38,6 +38,7 @@ abstract class ExpenseRepository {
     String? merchant,
     String? notes,
     Uint8List? receiptImage,
+    bool isGroupExpense = true,
   });
 
   /// Update an existing expense.
@@ -53,6 +54,16 @@ abstract class ExpenseRepository {
   /// Delete an expense.
   Future<Either<Failure, Unit>> deleteExpense({
     required String expenseId,
+  });
+
+  /// Update expense classification (group or personal).
+  ///
+  /// Changes the `is_group_expense` field. This affects:
+  /// - Visibility: Personal expenses only visible to creator
+  /// - Budget allocation: Which budgets the expense counts toward
+  Future<Either<Failure, ExpenseEntity>> updateExpenseClassification({
+    required String expenseId,
+    required bool isGroupExpense,
   });
 
   /// Upload a receipt image and return the URL.

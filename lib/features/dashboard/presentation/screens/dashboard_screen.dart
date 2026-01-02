@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../shared/widgets/error_display.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../budgets/presentation/providers/budget_actions_provider.dart';
+import '../../../budgets/presentation/widgets/group_budget_card.dart';
+import '../../../budgets/presentation/widgets/personal_budget_card.dart';
 import '../../../expenses/presentation/providers/expense_provider.dart';
 import '../../../groups/presentation/providers/group_provider.dart';
 import '../../domain/entities/dashboard_stats_entity.dart';
@@ -198,6 +203,43 @@ class _DashboardContent extends ConsumerWidget {
                   ],
                 ),
               ),
+
+            // Budget cards
+            if (!isPersonalView) ...[
+              // Group budget card (group view only)
+              Consumer(
+                builder: (context, ref, child) {
+                  final groupId = ref.watch(currentGroupIdProvider);
+                  final userId = ref.watch(currentUserIdProvider);
+
+                  return GroupBudgetCard(
+                    groupId: groupId,
+                    userId: userId,
+                    onNavigateToSettings: () {
+                      context.push('/budget-settings');
+                    },
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+            ] else ...[
+              // Personal budget card (personal view only)
+              Consumer(
+                builder: (context, ref, child) {
+                  final groupId = ref.watch(currentGroupIdProvider);
+                  final userId = ref.watch(currentUserIdProvider);
+
+                  return PersonalBudgetCard(
+                    groupId: groupId,
+                    userId: userId,
+                    onNavigateToSettings: () {
+                      context.push('/budget-settings');
+                    },
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+            ],
 
             // Recent expenses list
             Consumer(

@@ -253,6 +253,7 @@ class ExpenseFormNotifier extends StateNotifier<ExpenseFormState> {
     String? merchant,
     String? notes,
     Uint8List? receiptImage,
+    bool isGroupExpense = true,
   }) async {
     state = state.copyWith(status: ExpenseFormStatus.submitting, errorMessage: null);
 
@@ -263,6 +264,7 @@ class ExpenseFormNotifier extends StateNotifier<ExpenseFormState> {
       merchant: merchant,
       notes: notes,
       receiptImage: receiptImage,
+      isGroupExpense: isGroupExpense,
     );
 
     return result.fold(

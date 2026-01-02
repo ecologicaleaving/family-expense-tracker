@@ -11,6 +11,7 @@ class ExpenseEntity extends Equatable {
     required this.amount,
     required this.date,
     required this.category,
+    this.isGroupExpense = true,
     this.merchant,
     this.notes,
     this.receiptUrl,
@@ -36,6 +37,9 @@ class ExpenseEntity extends Equatable {
 
   /// Expense category
   final ExpenseCategory category;
+
+  /// Expense classification: true for group expenses (visible to all), false for personal (visible only to creator)
+  final bool isGroupExpense;
 
   /// Merchant/store name (optional)
   final String? merchant;
@@ -97,6 +101,7 @@ class ExpenseEntity extends Equatable {
     double? amount,
     DateTime? date,
     ExpenseCategory? category,
+    bool? isGroupExpense,
     String? merchant,
     String? notes,
     String? receiptUrl,
@@ -111,6 +116,7 @@ class ExpenseEntity extends Equatable {
       amount: amount ?? this.amount,
       date: date ?? this.date,
       category: category ?? this.category,
+      isGroupExpense: isGroupExpense ?? this.isGroupExpense,
       merchant: merchant ?? this.merchant,
       notes: notes ?? this.notes,
       receiptUrl: receiptUrl ?? this.receiptUrl,
@@ -128,6 +134,7 @@ class ExpenseEntity extends Equatable {
         amount,
         date,
         category,
+        isGroupExpense,
         merchant,
         notes,
         receiptUrl,

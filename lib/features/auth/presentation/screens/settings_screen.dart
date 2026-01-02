@@ -29,6 +29,20 @@ class SettingsScreen extends StatelessWidget {
             trailing: const Icon(Icons.chevron_right),
             onTap: () => context.push(AppRoutes.groupDetails),
           ),
+          ListTile(
+            leading: const Icon(Icons.category),
+            title: const Text('Categorie'),
+            subtitle: const Text('Gestisci categorie di spesa personalizzate'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push(AppRoutes.categoryManagement),
+          ),
+          ListTile(
+            leading: const Icon(Icons.account_balance_wallet),
+            title: const Text('Budget'),
+            subtitle: const Text('Imposta e monitora i budget'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push(AppRoutes.budgetSettings),
+          ),
         ],
       ),
     );

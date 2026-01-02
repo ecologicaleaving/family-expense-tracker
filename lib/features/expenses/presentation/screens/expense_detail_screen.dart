@@ -5,9 +5,12 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../../shared/widgets/error_display.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
+import '../../../../shared/widgets/receipt_image_viewer.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../dashboard/presentation/providers/dashboard_provider.dart';
 import '../../../groups/presentation/providers/group_provider.dart';
 import '../providers/expense_provider.dart';
+import '../providers/receipt_image_provider.dart';
 
 /// Screen showing full expense details with receipt image.
 class ExpenseDetailScreen extends ConsumerWidget {
@@ -238,6 +241,8 @@ class ExpenseDetailScreen extends ConsumerWidget {
 
       if (success && context.mounted) {
         ref.read(expenseListProvider.notifier).removeExpenseFromList(expenseId);
+        // Refresh dashboard to reflect the deleted expense
+        ref.read(dashboardProvider.notifier).refresh();
         context.go('/expenses');
       }
     }
@@ -292,6 +297,7 @@ class _ReceiptImageSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final receiptUrlAsync = ref.watch(receiptImageUrlProvider(receiptPath));
 
     return Card(
       child: Padding(
@@ -307,36 +313,183 @@ class _ReceiptImageSection extends ConsumerWidget {
                   'Scontrino',
                   style: theme.textTheme.titleSmall,
                 ),
+                const Spacer(),
+                Text(
+                  'Tocca per ingrandire',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 12),
-            // TODO: Load and display receipt image from storage
-            Container(
-              height: 200,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(8),
+            receiptUrlAsync.when(
+              data: (imageUrl) => _ReceiptPreview(imageUrl: imageUrl),
+              loading: () => _ReceiptPlaceholder(
+                theme: theme,
+                child: const LoadingIndicator(
+                  message: 'Caricamento...',
+                ),
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.image_outlined,
-                    size: 48,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Immagine scontrino',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+              error: (error, _) => _ReceiptPlaceholder(
+                theme: theme,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.image_not_supported_outlined,
+                      size: 48,
+                      color: theme.colorScheme.error,
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 8),
+                    Text(
+                      'Impossibile caricare',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.error,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton.icon(
+                      onPressed: () => ref.invalidate(receiptImageUrlProvider(receiptPath)),
+                      icon: const Icon(Icons.refresh, size: 16),
+                      label: const Text('Riprova'),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Placeholder container for loading and error states.
+class _ReceiptPlaceholder extends StatelessWidget {
+  const _ReceiptPlaceholder({
+    required this.theme,
+    required this.child,
+  });
+
+  final ThemeData theme;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 200,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: child,
+    );
+  }
+}
+
+/// Receipt image preview that opens full-screen viewer on tap.
+class _ReceiptPreview extends StatelessWidget {
+  const _ReceiptPreview({required this.imageUrl});
+
+  final String imageUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return GestureDetector(
+      onTap: () => ReceiptImageViewerNavigation.show(context, imageUrl),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          height: 200,
+          width: double.infinity,
+          color: theme.colorScheme.surfaceContainerHighest,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.network(
+                imageUrl,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) {
+                    return child;
+                  }
+                  return Center(
+                    child: CircularProgressIndicator(
+                      value: loadingProgress.expectedTotalBytes != null
+                          ? loadingProgress.cumulativeBytesLoaded /
+                              loadingProgress.expectedTotalBytes!
+                          : null,
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.broken_image_outlined,
+                          size: 48,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Immagine non disponibile',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+              // Zoom hint overlay at bottom
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withOpacity(0.6),
+                      ],
+                    ),
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.zoom_in,
+                        size: 16,
+                        color: Colors.white,
+                      ),
+                      SizedBox(width: 4),
+                      Text(
+                        'Tocca per vedere',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

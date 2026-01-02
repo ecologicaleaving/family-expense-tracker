@@ -331,6 +331,15 @@ final currentGroupProvider = Provider<FamilyGroupEntity?>((ref) {
   return ref.watch(groupProvider).group;
 });
 
+/// Convenience provider to get current group ID
+final currentGroupIdProvider = Provider<String>((ref) {
+  final group = ref.watch(currentGroupProvider);
+  if (group == null) {
+    throw StateError('No group available');
+  }
+  return group.id;
+});
+
 /// Convenience provider to get group members
 final groupMembersProvider = Provider<List<MemberEntity>>((ref) {
   return ref.watch(groupProvider).members;

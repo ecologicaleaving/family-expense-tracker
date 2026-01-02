@@ -22,6 +22,8 @@ import '../features/expenses/presentation/screens/edit_expense_screen.dart';
 import '../features/dashboard/presentation/screens/dashboard_screen.dart';
 import '../features/auth/presentation/screens/main_navigation_screen.dart';
 import '../features/auth/presentation/screens/profile_screen.dart';
+import '../features/budgets/presentation/screens/budget_settings_screen.dart';
+import '../features/categories/presentation/screens/category_management_screen.dart';
 import '../features/upload/presentation/screens/upload_file_screen.dart';
 
 /// Route paths
@@ -48,6 +50,12 @@ class AppRoutes {
   static const uploadFile = '/upload-file';
   static const expenseDetail = '/expense/:id';
   static const editExpense = '/expense/:id/edit';
+
+  // Budget routes
+  static const budgetSettings = '/budget-settings';
+
+  // Category routes
+  static const categoryManagement = '/category-management';
 
   // Dashboard
   static const dashboard = '/dashboard';
@@ -184,6 +192,20 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.uploadFile,
         name: 'uploadFile',
         builder: (context, state) => const UploadFileScreen(),
+      ),
+
+      // Budget routes
+      GoRoute(
+        path: AppRoutes.budgetSettings,
+        name: 'budgetSettings',
+        builder: (context, state) => const BudgetSettingsScreen(),
+      ),
+
+      // Category routes
+      GoRoute(
+        path: AppRoutes.categoryManagement,
+        name: 'categoryManagement',
+        builder: (context, state) => const CategoryManagementScreen(),
       ),
 
       // Dashboard route (standalone, without bottom nav)

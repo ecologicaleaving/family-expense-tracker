@@ -1,10 +1,10 @@
 {
   "active": true,
-  "spec": "008-expense-editing",
+  "spec": "007-receipt-image-viewing",
   "state": "building",
   "subtasks": {
-    "completed": 5,
-    "total": 6,
+    "completed": 4,
+    "total": 5,
     "in_progress": 1,
     "failed": 0
   },
@@ -18,8 +18,8 @@
     "max": 1
   },
   "session": {
-    "number": 6,
-    "started_at": "2026-01-02T09:27:17.777853"
+    "number": 5,
+    "started_at": "2026-01-02T09:27:26.500680"
   },
-  "last_update": "2026-01-02T10:00:58.200159"
+  "last_update": "2026-01-02T10:03:17.735041"
 }

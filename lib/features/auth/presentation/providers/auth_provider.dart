@@ -285,6 +285,15 @@ final currentUserProvider = Provider<UserEntity?>((ref) {
   return ref.watch(authProvider).user;
 });
 
+/// Convenience provider to get current user ID
+final currentUserIdProvider = Provider<String>((ref) {
+  final user = ref.watch(currentUserProvider);
+  if (user == null) {
+    throw StateError('No authenticated user');
+  }
+  return user.id;
+});
+
 /// Convenience provider to check if user has a group
 final hasGroupProvider = Provider<bool>((ref) {
   return ref.watch(authProvider).user?.hasGroup ?? false;

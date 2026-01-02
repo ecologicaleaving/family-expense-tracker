@@ -71,7 +71,7 @@ class ExpenseListItem extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
 
-                  // Date and receipt indicator
+                  // Date, expense type, and receipt indicator
                   Row(
                     children: [
                       Text(
@@ -79,6 +79,13 @@ class ExpenseListItem extends StatelessWidget {
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Expense type indicator
+                      Icon(
+                        expense.isGroupExpense ? Icons.group : Icons.person,
+                        size: 14,
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
                       if (expense.hasReceipt) ...[
                         const SizedBox(width: 8),

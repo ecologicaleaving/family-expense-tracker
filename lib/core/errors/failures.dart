@@ -129,3 +129,18 @@ class UnexpectedFailure extends Failure {
     super.code = 'UNEXPECTED',
   ]);
 }
+
+/// Failure for permission errors
+class PermissionFailure extends Failure {
+  const PermissionFailure(super.message, [super.code]);
+
+  static const notAdmin = PermissionFailure(
+    'Solo gli amministratori possono eseguire questa azione',
+    'NOT_ADMIN',
+  );
+
+  static const accessDenied = PermissionFailure(
+    'Accesso negato',
+    'ACCESS_DENIED',
+  );
+}

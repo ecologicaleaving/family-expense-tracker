@@ -202,3 +202,18 @@ class NetworkException extends AppException {
     super.code = 'NO_NETWORK',
   ]);
 }
+
+/// Exception thrown when permission is denied
+class PermissionException extends AppException {
+  const PermissionException(super.message, [super.code]);
+
+  static const notAdmin = PermissionException(
+    'Solo gli amministratori possono eseguire questa azione',
+    'NOT_ADMIN',
+  );
+
+  static const accessDenied = PermissionException(
+    'Accesso negato',
+    'ACCESS_DENIED',
+  );
+}

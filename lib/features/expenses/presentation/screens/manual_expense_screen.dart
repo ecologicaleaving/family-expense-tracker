@@ -12,6 +12,7 @@ import '../../../../shared/widgets/primary_button.dart';
 import '../../../dashboard/presentation/providers/dashboard_provider.dart';
 import '../providers/expense_provider.dart';
 import '../widgets/category_selector.dart';
+import '../widgets/expense_type_toggle.dart';
 
 /// Screen for manual expense entry.
 class ManualExpenseScreen extends ConsumerStatefulWidget {
@@ -29,6 +30,7 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
   final _notesController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
   ExpenseCategory _selectedCategory = ExpenseCategory.altro;
+  bool _isGroupExpense = true; // Default to group expense
 
   // Track initial values for unsaved changes detection
   late final String _initialAmount;
@@ -36,6 +38,7 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
   late final String _initialNotes;
   late final DateTime _initialDate;
   late final ExpenseCategory _initialCategory;
+  late final bool _initialIsGroupExpense;
 
   @override
   void initState() {
@@ -46,6 +49,7 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
     _initialNotes = _notesController.text;
     _initialDate = _selectedDate;
     _initialCategory = _selectedCategory;
+    _initialIsGroupExpense = _isGroupExpense;
   }
 
   @override
@@ -62,7 +66,8 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
         _merchantController.text != _initialMerchant ||
         _notesController.text != _initialNotes ||
         _selectedDate != _initialDate ||
-        _selectedCategory != _initialCategory;
+        _selectedCategory != _initialCategory ||
+        _isGroupExpense != _initialIsGroupExpense;
   }
 
   Future<void> _handleSave() async {
@@ -84,6 +89,7 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
       notes: _notesController.text.trim().isNotEmpty
           ? _notesController.text.trim()
           : null,
+      isGroupExpense: _isGroupExpense,
     );
 
     if (expense != null && mounted) {
@@ -168,6 +174,32 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
                 enabled: !formState.isSubmitting,
                 validator: Validators.validateMerchant,
                 textCapitalization: TextCapitalization.words,
+              ),
+              const SizedBox(height: 16),
+
+              // Expense type toggle
+              Text(
+                'Tipo di spesa',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              ExpenseTypeToggle(
+                isGroupExpense: _isGroupExpense,
+                onChanged: (value) {
+                  setState(() {
+                    _isGroupExpense = value;
+                  });
+                },
+                enabled: !formState.isSubmitting,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _isGroupExpense
+                    ? 'Visibile a tutti i membri del gruppo'
+                    : 'Visibile solo a te',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
               ),
               const SizedBox(height: 16),
 
