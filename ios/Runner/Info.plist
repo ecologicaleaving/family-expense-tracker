@@ -45,5 +45,16 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>finapp</string>
+			</array>
+			<key>CFBundleURLName</key>
+			<string>com.ecologicaleaving.fin</string>
+		</dict>
+	</array>
 </dict>
 </plist>
