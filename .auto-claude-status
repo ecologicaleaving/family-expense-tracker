@@ -1,0 +1,25 @@
+{
+  "active": true,
+  "spec": "007-receipt-image-viewing",
+  "state": "building",
+  "subtasks": {
+    "completed": 4,
+    "total": 5,
+    "in_progress": 1,
+    "failed": 0
+  },
+  "phase": {
+    "current": "Integration Testing",
+    "id": null,
+    "total": 1
+  },
+  "workers": {
+    "active": 0,
+    "max": 1
+  },
+  "session": {
+    "number": 5,
+    "started_at": "2026-01-02T09:27:26.500680"
+  },
+  "last_update": "2026-01-02T10:03:17.735041"
+}
