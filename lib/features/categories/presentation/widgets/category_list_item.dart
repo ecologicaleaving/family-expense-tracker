@@ -55,18 +55,28 @@ class CategoryListItem extends ConsumerWidget {
             : Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.edit_outlined),
-                    onPressed: () => _showEditDialog(context, ref),
-                    tooltip: 'Edit category',
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      Icons.delete_outline,
-                      color: theme.colorScheme.error,
+                  Semantics(
+                    button: true,
+                    enabled: true,
+                    label: 'Edit ${category.name} category',
+                    child: IconButton(
+                      icon: const Icon(Icons.edit_outlined),
+                      onPressed: () => _showEditDialog(context, ref),
+                      tooltip: 'Edit category',
                     ),
-                    onPressed: () => _handleDelete(context, ref),
-                    tooltip: 'Delete category',
+                  ),
+                  Semantics(
+                    button: true,
+                    enabled: true,
+                    label: 'Delete ${category.name} category',
+                    child: IconButton(
+                      icon: Icon(
+                        Icons.delete_outline,
+                        color: theme.colorScheme.error,
+                      ),
+                      onPressed: () => _handleDelete(context, ref),
+                      tooltip: 'Delete category',
+                    ),
                   ),
                 ],
               ),

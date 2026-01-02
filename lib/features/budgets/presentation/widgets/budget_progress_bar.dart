@@ -40,19 +40,24 @@ class BudgetProgressBar extends StatelessWidget {
     // Cap percentage at 100% for progress bar display
     final displayPercentage = percentage > 100 ? 100.0 : percentage;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(height / 2),
-          child: LinearProgressIndicator(
-            value: displayPercentage / 100,
-            backgroundColor: theme.colorScheme.surfaceContainerHighest,
-            valueColor: AlwaysStoppedAnimation<Color>(progressColor),
-            minHeight: height,
+    return Semantics(
+      label: 'Budget progress: ${percentage.toStringAsFixed(1)}% used, ${BudgetCalculator.formatAmount(spentAmount)} spent of ${BudgetCalculator.formatAmount(budgetAmount)} budget',
+      value: '${percentage.toStringAsFixed(0)}%',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(height / 2),
+            child: LinearProgressIndicator(
+              value: displayPercentage / 100,
+              backgroundColor: theme.colorScheme.surfaceContainerHighest,
+              valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+              minHeight: height,
+              semanticsLabel: 'Budget usage progress indicator',
+              semanticsValue: '${percentage.toStringAsFixed(0)} percent',
+            ),
           ),
-        ),
         if (showPercentage) ...[
           const SizedBox(height: 4),
           Row(
@@ -75,6 +80,7 @@ class BudgetProgressBar extends StatelessWidget {
           ),
         ],
       ],
+      ),
     );
   }
 }
