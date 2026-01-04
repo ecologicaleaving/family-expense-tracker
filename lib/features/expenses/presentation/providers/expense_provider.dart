@@ -3,7 +3,6 @@ import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../../../core/config/constants.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../widget/presentation/services/widget_update_service.dart';
 import '../../data/datasources/expense_remote_datasource.dart';
@@ -40,7 +39,7 @@ class ExpenseListState {
     this.expenses = const [],
     this.hasMore = true,
     this.errorMessage,
-    this.filterCategory,
+    this.filterCategoryId,
     this.filterStartDate,
     this.filterEndDate,
     this.filterCreatedBy,
@@ -50,7 +49,7 @@ class ExpenseListState {
   final List<ExpenseEntity> expenses;
   final bool hasMore;
   final String? errorMessage;
-  final ExpenseCategory? filterCategory;
+  final String? filterCategoryId;
   final DateTime? filterStartDate;
   final DateTime? filterEndDate;
   final String? filterCreatedBy;
@@ -60,7 +59,7 @@ class ExpenseListState {
     List<ExpenseEntity>? expenses,
     bool? hasMore,
     String? errorMessage,
-    ExpenseCategory? filterCategory,
+    String? filterCategoryId,
     DateTime? filterStartDate,
     DateTime? filterEndDate,
     String? filterCreatedBy,
@@ -70,7 +69,7 @@ class ExpenseListState {
       expenses: expenses ?? this.expenses,
       hasMore: hasMore ?? this.hasMore,
       errorMessage: errorMessage,
-      filterCategory: filterCategory ?? this.filterCategory,
+      filterCategoryId: filterCategoryId ?? this.filterCategoryId,
       filterStartDate: filterStartDate ?? this.filterStartDate,
       filterEndDate: filterEndDate ?? this.filterEndDate,
       filterCreatedBy: filterCreatedBy ?? this.filterCreatedBy,
@@ -81,7 +80,7 @@ class ExpenseListState {
   bool get hasError => status == ExpenseListStatus.error;
   bool get isEmpty => expenses.isEmpty && status == ExpenseListStatus.loaded;
   bool get hasFilters =>
-      filterCategory != null ||
+      filterCategoryId != null ||
       filterStartDate != null ||
       filterEndDate != null ||
       filterCreatedBy != null;
@@ -107,7 +106,7 @@ class ExpenseListNotifier extends StateNotifier<ExpenseListState> {
     final result = await _expenseRepository.getExpenses(
       startDate: state.filterStartDate,
       endDate: state.filterEndDate,
-      category: state.filterCategory?.value,
+      categoryId: state.filterCategoryId,
       createdBy: state.filterCreatedBy,
       limit: _pageSize,
       offset: refresh ? 0 : state.expenses.length,
@@ -142,8 +141,8 @@ class ExpenseListNotifier extends StateNotifier<ExpenseListState> {
   }
 
   /// Set category filter
-  void setFilterCategory(ExpenseCategory? category) {
-    state = state.copyWith(filterCategory: category);
+  void setFilterCategory(String? categoryId) {
+    state = state.copyWith(filterCategoryId: categoryId);
     loadExpenses(refresh: true);
   }
 
@@ -249,7 +248,7 @@ class ExpenseFormNotifier extends StateNotifier<ExpenseFormState> {
   Future<ExpenseEntity?> createExpense({
     required double amount,
     required DateTime date,
-    required ExpenseCategory category,
+    required String categoryId,
     String? merchant,
     String? notes,
     Uint8List? receiptImage,
@@ -260,7 +259,7 @@ class ExpenseFormNotifier extends StateNotifier<ExpenseFormState> {
     final result = await _expenseRepository.createExpense(
       amount: amount,
       date: date,
-      category: category.value,
+      categoryId: categoryId,
       merchant: merchant,
       notes: notes,
       receiptImage: receiptImage,
@@ -294,7 +293,7 @@ class ExpenseFormNotifier extends StateNotifier<ExpenseFormState> {
     required String expenseId,
     double? amount,
     DateTime? date,
-    ExpenseCategory? category,
+    String? categoryId,
     String? merchant,
     String? notes,
   }) async {
@@ -304,7 +303,7 @@ class ExpenseFormNotifier extends StateNotifier<ExpenseFormState> {
       expenseId: expenseId,
       amount: amount,
       date: date,
-      category: category?.value,
+      categoryId: categoryId,
       merchant: merchant,
       notes: notes,
     );
@@ -323,6 +322,40 @@ class ExpenseFormNotifier extends StateNotifier<ExpenseFormState> {
           expense: expense,
         );
         // Trigger widget update after successful expense update
+        _widgetUpdateService.triggerUpdate().catchError((error) {
+          print('Failed to update widget: $error');
+        });
+        return expense;
+      },
+    );
+  }
+
+  /// Update expense classification (group or personal)
+  Future<ExpenseEntity?> updateExpenseClassification({
+    required String expenseId,
+    required bool isGroupExpense,
+  }) async {
+    state = state.copyWith(status: ExpenseFormStatus.submitting, errorMessage: null);
+
+    final result = await _expenseRepository.updateExpenseClassification(
+      expenseId: expenseId,
+      isGroupExpense: isGroupExpense,
+    );
+
+    return result.fold(
+      (failure) {
+        state = state.copyWith(
+          status: ExpenseFormStatus.error,
+          errorMessage: failure.message,
+        );
+        return null;
+      },
+      (expense) {
+        state = state.copyWith(
+          status: ExpenseFormStatus.success,
+          expense: expense,
+        );
+        // Trigger widget update after successful classification change
         _widgetUpdateService.triggerUpdate().catchError((error) {
           print('Failed to update widget: $error');
         });
@@ -386,7 +419,10 @@ final expenseProvider = FutureProvider.family<ExpenseEntity?, String>((ref, expe
 /// Provider for recent group expenses (last 10 expenses for the whole group)
 final recentGroupExpensesProvider = FutureProvider<List<ExpenseEntity>>((ref) async {
   final repository = ref.watch(expenseRepositoryProvider);
-  final result = await repository.getExpenses(limit: 10);
+  final result = await repository.getExpenses(
+    isGroupExpense: true,
+    limit: 10,
+  );
   return result.fold(
     (_) => [],
     (expenses) => expenses,
@@ -402,6 +438,7 @@ final recentPersonalExpensesProvider = FutureProvider<List<ExpenseEntity>>((ref)
 
   final result = await repository.getExpenses(
     createdBy: currentUser.id,
+    isGroupExpense: false,
     limit: 10,
   );
   return result.fold(

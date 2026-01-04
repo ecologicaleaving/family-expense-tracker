@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/config/constants.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../shared/widgets/custom_text_field.dart';
@@ -29,7 +28,7 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
   final _merchantController = TextEditingController();
   final _notesController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
-  ExpenseCategory _selectedCategory = ExpenseCategory.altro;
+  String? _selectedCategoryId; // Will be set when categories load
   bool _isGroupExpense = true; // Default to group expense
 
   // Track initial values for unsaved changes detection
@@ -37,7 +36,7 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
   late final String _initialMerchant;
   late final String _initialNotes;
   late final DateTime _initialDate;
-  late final ExpenseCategory _initialCategory;
+  late final String? _initialCategoryId;
   late final bool _initialIsGroupExpense;
 
   @override
@@ -48,7 +47,7 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
     _initialMerchant = _merchantController.text;
     _initialNotes = _notesController.text;
     _initialDate = _selectedDate;
-    _initialCategory = _selectedCategory;
+    _initialCategoryId = _selectedCategoryId;
     _initialIsGroupExpense = _isGroupExpense;
   }
 
@@ -66,7 +65,7 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
         _merchantController.text != _initialMerchant ||
         _notesController.text != _initialNotes ||
         _selectedDate != _initialDate ||
-        _selectedCategory != _initialCategory ||
+        _selectedCategoryId != _initialCategoryId ||
         _isGroupExpense != _initialIsGroupExpense;
   }
 
@@ -76,13 +75,23 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
     final amount = Validators.parseAmount(_amountController.text);
     if (amount == null) return;
 
+    // Validate category is selected
+    if (_selectedCategoryId == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Seleziona una categoria')),
+        );
+      }
+      return;
+    }
+
     final formNotifier = ref.read(expenseFormProvider.notifier);
     final listNotifier = ref.read(expenseListProvider.notifier);
 
     final expense = await formNotifier.createExpense(
       amount: amount,
       date: _selectedDate,
-      category: _selectedCategory,
+      categoryId: _selectedCategoryId!,
       merchant: _merchantController.text.trim().isNotEmpty
           ? _merchantController.text.trim()
           : null,
@@ -205,10 +214,10 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
 
               // Category selector
               CategorySelector(
-                selectedCategory: _selectedCategory,
-                onCategorySelected: (category) {
+                selectedCategoryId: _selectedCategoryId,
+                onCategorySelected: (categoryId) {
                   setState(() {
-                    _selectedCategory = category;
+                    _selectedCategoryId = categoryId;
                   });
                 },
                 enabled: !formState.isSubmitting,

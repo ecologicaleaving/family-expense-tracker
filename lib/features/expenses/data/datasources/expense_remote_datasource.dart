@@ -11,8 +11,9 @@ abstract class ExpenseRemoteDataSource {
   Future<List<ExpenseModel>> getExpenses({
     DateTime? startDate,
     DateTime? endDate,
-    String? category,
+    String? categoryId,
     String? createdBy,
+    bool? isGroupExpense,
     int? limit,
     int? offset,
   });
@@ -24,7 +25,7 @@ abstract class ExpenseRemoteDataSource {
   Future<ExpenseModel> createExpense({
     required double amount,
     required DateTime date,
-    required String category,
+    required String categoryId,
     String? merchant,
     String? notes,
     bool isGroupExpense = true,
@@ -35,7 +36,7 @@ abstract class ExpenseRemoteDataSource {
     required String expenseId,
     double? amount,
     DateTime? date,
-    String? category,
+    String? categoryId,
     String? merchant,
     String? notes,
   });
@@ -87,8 +88,9 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
   Future<List<ExpenseModel>> getExpenses({
     DateTime? startDate,
     DateTime? endDate,
-    String? category,
+    String? categoryId,
     String? createdBy,
+    bool? isGroupExpense,
     int? limit,
     int? offset,
   }) async {
@@ -98,10 +100,10 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
         throw const GroupException('Non fai parte di nessun gruppo', 'not_in_group');
       }
 
-      // Build the filter query
+      // Build the filter query with JOIN to get category name
       var filterQuery = supabaseClient
           .from('expenses')
-          .select()
+          .select('*, category_name:expense_categories(name)')
           .eq('group_id', groupId);
 
       if (startDate != null) {
@@ -110,11 +112,14 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
       if (endDate != null) {
         filterQuery = filterQuery.lte('date', endDate.toIso8601String().split('T')[0]);
       }
-      if (category != null) {
-        filterQuery = filterQuery.eq('category', category);
+      if (categoryId != null) {
+        filterQuery = filterQuery.eq('category_id', categoryId);
       }
       if (createdBy != null) {
         filterQuery = filterQuery.eq('created_by', createdBy);
+      }
+      if (isGroupExpense != null) {
+        filterQuery = filterQuery.eq('is_group_expense', isGroupExpense);
       }
 
       // Apply ordering and pagination
@@ -127,7 +132,13 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
       }
 
       final response = await orderedQuery;
-      return (response as List).map((json) => ExpenseModel.fromJson(json)).toList();
+      return (response as List).map((json) {
+        // Extract category_name from nested object if present
+        if (json['category_name'] != null && json['category_name'] is Map) {
+          json['category_name'] = json['category_name']['name'];
+        }
+        return ExpenseModel.fromJson(json);
+      }).toList();
     } on PostgrestException catch (e) {
       throw ServerException(e.message, e.code);
     } catch (e) {
@@ -141,9 +152,14 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
     try {
       final response = await supabaseClient
           .from('expenses')
-          .select()
+          .select('*, category_name:expense_categories(name)')
           .eq('id', expenseId)
           .single();
+
+      // Extract category_name from nested object if present
+      if (response['category_name'] != null && response['category_name'] is Map) {
+        response['category_name'] = response['category_name']['name'];
+      }
 
       return ExpenseModel.fromJson(response);
     } on PostgrestException catch (e) {
@@ -157,7 +173,7 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
   Future<ExpenseModel> createExpense({
     required double amount,
     required DateTime date,
-    required String category,
+    required String categoryId,
     String? merchant,
     String? notes,
     bool isGroupExpense = true,
@@ -191,13 +207,18 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
             'paid_by_name': displayName ?? 'Utente',
             'amount': amount,
             'date': normalizedDate.toIso8601String().split('T')[0],
-            'category': category,
+            'category_id': categoryId,
             'merchant': merchant,
             'notes': notes,
             'is_group_expense': isGroupExpense,
           })
-          .select()
+          .select('*, category_name:expense_categories(name)')
           .single();
+
+      // Extract category_name from nested object if present
+      if (response['category_name'] != null && response['category_name'] is Map) {
+        response['category_name'] = response['category_name']['name'];
+      }
 
       return ExpenseModel.fromJson(response);
     } on PostgrestException catch (e) {
@@ -213,7 +234,7 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
     required String expenseId,
     double? amount,
     DateTime? date,
-    String? category,
+    String? categoryId,
     String? merchant,
     String? notes,
   }) async {
@@ -222,7 +243,7 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
 
       if (amount != null) updates['amount'] = amount;
       if (date != null) updates['date'] = date.toIso8601String().split('T')[0];
-      if (category != null) updates['category'] = category;
+      if (categoryId != null) updates['category_id'] = categoryId;
       if (merchant != null) updates['merchant'] = merchant;
       if (notes != null) updates['notes'] = notes;
 
@@ -234,8 +255,13 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
           .from('expenses')
           .update(updates)
           .eq('id', expenseId)
-          .select()
+          .select('*, category_name:expense_categories(name)')
           .single();
+
+      // Extract category_name from nested object if present
+      if (response['category_name'] != null && response['category_name'] is Map) {
+        response['category_name'] = response['category_name']['name'];
+      }
 
       return ExpenseModel.fromJson(response);
     } on PostgrestException catch (e) {
@@ -269,8 +295,13 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
           .from('expenses')
           .update({'is_group_expense': isGroupExpense})
           .eq('id', expenseId)
-          .select()
+          .select('*, category_name:expense_categories(name)')
           .single();
+
+      // Extract category_name from nested object if present
+      if (response['category_name'] != null && response['category_name'] is Map) {
+        response['category_name'] = response['category_name']['name'];
+      }
 
       return ExpenseModel.fromJson(response);
     } on PostgrestException catch (e) {
