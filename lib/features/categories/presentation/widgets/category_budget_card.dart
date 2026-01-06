@@ -1,12 +1,16 @@
 // Widget: Category Budget Card
 // Feature: Italian Categories and Budget Management (004)
-// Tasks: T033-T035
+// Tasks: T033-T035, Extended for percentage budgets
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../budgets/presentation/providers/category_budget_provider.dart';
 
 /// Card widget for displaying and editing a category's monthly budget
-class CategoryBudgetCard extends StatefulWidget {
+/// Supports both fixed amounts and percentage-based budgets
+class CategoryBudgetCard extends ConsumerStatefulWidget {
   const CategoryBudgetCard({
     super.key,
     required this.categoryId,
@@ -16,6 +20,13 @@ class CategoryBudgetCard extends StatefulWidget {
     this.budgetId,
     required this.onSaveBudget,
     required this.onDeleteBudget,
+    this.isGroupBudget = true,
+    this.groupBudgetAmount,
+    this.initialPercentage,
+    this.userId,
+    this.groupId,
+    this.year,
+    this.month,
   });
 
   final String categoryId;
@@ -26,21 +37,83 @@ class CategoryBudgetCard extends StatefulWidget {
   final Future<bool> Function(int amount) onSaveBudget;
   final Future<bool> Function() onDeleteBudget;
 
+  // New fields for percentage support
+  final bool isGroupBudget;
+  final int? groupBudgetAmount; // Group budget in cents (for percentage calculation)
+  final double? initialPercentage; // Initial percentage value (0-100)
+  final String? userId; // For fetching previous month percentage
+  final String? groupId;
+  final int? year;
+  final int? month;
+
   @override
-  State<CategoryBudgetCard> createState() => _CategoryBudgetCardState();
+  ConsumerState<CategoryBudgetCard> createState() => _CategoryBudgetCardState();
 }
 
-class _CategoryBudgetCardState extends State<CategoryBudgetCard> {
-  final _controller = TextEditingController();
+class _CategoryBudgetCardState extends ConsumerState<CategoryBudgetCard> {
+  final _euroController = TextEditingController();
+  final _percentageController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isEditing = false;
   bool _isSaving = false;
+  bool _isPercentageMode = false;
+  bool _isLoadingPreviousPercentage = false;
 
   @override
   void initState() {
     super.initState();
+
+    // Initialize euro controller
     if (widget.currentBudget != null) {
-      _controller.text = (widget.currentBudget! / 100).toStringAsFixed(2);
+      _euroController.text = (widget.currentBudget! / 100).toStringAsFixed(2);
+    }
+
+    // Initialize percentage mode for personal budgets
+    if (!widget.isGroupBudget) {
+      if (widget.initialPercentage != null) {
+        _isPercentageMode = true;
+        _percentageController.text = widget.initialPercentage!.toStringAsFixed(1);
+        _updateEuroFromPercentage();
+      } else {
+        // Try to load percentage from previous month
+        _loadPreviousMonthPercentage();
+      }
+    }
+  }
+
+  Future<void> _loadPreviousMonthPercentage() async {
+    if (widget.userId == null || widget.groupId == null ||
+        widget.year == null || widget.month == null) {
+      return;
+    }
+
+    setState(() => _isLoadingPreviousPercentage = true);
+
+    try {
+      final notifier = ref.read(
+        categoryBudgetProvider((
+          groupId: widget.groupId!,
+          year: widget.year!,
+          month: widget.month!,
+        )).notifier,
+      );
+
+      final prevPercentage = await notifier.getPreviousMonthPercentage(
+        categoryId: widget.categoryId,
+        userId: widget.userId!,
+      );
+
+      if (mounted && prevPercentage != null) {
+        setState(() {
+          _percentageController.text = prevPercentage.toStringAsFixed(1);
+          _isPercentageMode = true;
+        });
+        _updateEuroFromPercentage();
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingPreviousPercentage = false);
+      }
     }
   }
 
@@ -49,17 +122,56 @@ class _CategoryBudgetCardState extends State<CategoryBudgetCard> {
     super.didUpdateWidget(oldWidget);
     if (widget.currentBudget != oldWidget.currentBudget && !_isEditing) {
       if (widget.currentBudget != null) {
-        _controller.text = (widget.currentBudget! / 100).toStringAsFixed(2);
+        _euroController.text = (widget.currentBudget! / 100).toStringAsFixed(2);
       } else {
-        _controller.clear();
+        _euroController.clear();
+      }
+    }
+
+    if (widget.initialPercentage != oldWidget.initialPercentage && !_isEditing) {
+      if (widget.initialPercentage != null) {
+        _percentageController.text = widget.initialPercentage!.toStringAsFixed(1);
+        _updateEuroFromPercentage();
       }
     }
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _euroController.dispose();
+    _percentageController.dispose();
     super.dispose();
+  }
+
+  /// Two-way binding: Update euro field when percentage changes
+  void _onPercentageChanged(String percentageStr) {
+    if (!_isPercentageMode || widget.groupBudgetAmount == null) return;
+
+    final percentage = double.tryParse(percentageStr);
+    if (percentage != null && percentage >= 0 && percentage <= 100) {
+      final personalBudgetCents = (widget.groupBudgetAmount! * percentage) / 100;
+      final personalBudgetEuros = personalBudgetCents / 100;
+      _euroController.text = personalBudgetEuros.toStringAsFixed(2);
+    }
+  }
+
+  /// Two-way binding: Update percentage field when euro changes
+  void _onEuroChanged(String euroStr) {
+    if (!_isPercentageMode || widget.groupBudgetAmount == null || widget.groupBudgetAmount == 0) {
+      return;
+    }
+
+    final euros = double.tryParse(euroStr);
+    if (euros != null && euros >= 0) {
+      final percentage = (euros * 100 * 100) / widget.groupBudgetAmount!;
+      if (percentage >= 0 && percentage <= 100) {
+        _percentageController.text = percentage.toStringAsFixed(1);
+      }
+    }
+  }
+
+  void _updateEuroFromPercentage() {
+    _onPercentageChanged(_percentageController.text);
   }
 
   Future<void> _saveBudget() async {
@@ -68,31 +180,80 @@ class _CategoryBudgetCardState extends State<CategoryBudgetCard> {
     setState(() => _isSaving = true);
 
     try {
-      final euros = double.parse(_controller.text);
+      final euros = double.parse(_euroController.text);
       final cents = (euros * 100).toInt();
 
-      final success = await widget.onSaveBudget(cents);
+      // If percentage mode and we have the necessary data, save as percentage budget
+      if (_isPercentageMode &&
+          !widget.isGroupBudget &&
+          widget.userId != null &&
+          widget.groupId != null &&
+          widget.year != null &&
+          widget.month != null) {
 
-      if (mounted) {
-        if (success) {
-          setState(() {
-            _isEditing = false;
-            _isSaving = false;
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Budget salvato per ${widget.categoryName}'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        } else {
-          setState(() => _isSaving = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Errore nel salvare il budget'),
-              backgroundColor: Colors.red,
-            ),
-          );
+        final percentage = double.parse(_percentageController.text);
+
+        final notifier = ref.read(
+          categoryBudgetProvider((
+            groupId: widget.groupId!,
+            year: widget.year!,
+            month: widget.month!,
+          )).notifier,
+        );
+
+        final success = await notifier.setPersonalPercentageBudget(
+          categoryId: widget.categoryId,
+          userId: widget.userId!,
+          percentage: percentage,
+        );
+
+        if (mounted) {
+          if (success) {
+            setState(() {
+              _isEditing = false;
+              _isSaving = false;
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Budget percentuale salvato per ${widget.categoryName}'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          } else {
+            setState(() => _isSaving = false);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Errore nel salvare il budget percentuale'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      } else {
+        // Save as fixed budget
+        final success = await widget.onSaveBudget(cents);
+
+        if (mounted) {
+          if (success) {
+            setState(() {
+              _isEditing = false;
+              _isSaving = false;
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Budget salvato per ${widget.categoryName}'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          } else {
+            setState(() => _isSaving = false);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Errore nel salvare il budget'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
         }
       }
     } catch (e) {
@@ -142,9 +303,11 @@ class _CategoryBudgetCardState extends State<CategoryBudgetCard> {
       if (mounted) {
         if (success) {
           setState(() {
-            _controller.clear();
+            _euroController.clear();
+            _percentageController.clear();
             _isEditing = false;
             _isSaving = false;
+            _isPercentageMode = false;
           });
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -179,6 +342,7 @@ class _CategoryBudgetCardState extends State<CategoryBudgetCard> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final hasBudget = widget.currentBudget != null;
+    final canUsePercentage = !widget.isGroupBudget && widget.groupBudgetAmount != null;
 
     return Card(
       child: Padding(
@@ -221,85 +385,199 @@ class _CategoryBudgetCardState extends State<CategoryBudgetCard> {
             ),
             const SizedBox(height: 16),
 
+            // Show group budget info for personal budgets
+            if (!widget.isGroupBudget && widget.groupBudgetAmount != null) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      size: 16,
+                      color: theme.colorScheme.onPrimaryContainer,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Budget gruppo: €${(widget.groupBudgetAmount! / 100).toStringAsFixed(2)}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onPrimaryContainer,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // Toggle between fixed and percentage mode (only for personal budgets)
+            if (canUsePercentage && (_isEditing || !hasBudget)) ...[
+              SegmentedButton<bool>(
+                segments: const [
+                  ButtonSegment(
+                    value: false,
+                    label: Text('Euro fisso'),
+                    icon: Icon(Icons.euro, size: 16),
+                  ),
+                  ButtonSegment(
+                    value: true,
+                    label: Text('Percentuale'),
+                    icon: Icon(Icons.percent, size: 16),
+                  ),
+                ],
+                selected: {_isPercentageMode},
+                onSelectionChanged: (Set<bool> newSelection) {
+                  setState(() {
+                    _isPercentageMode = newSelection.first;
+                    if (_isPercentageMode) {
+                      _updateEuroFromPercentage();
+                    }
+                  });
+                },
+              ),
+              const SizedBox(height: 16),
+            ],
+
             // Budget input or display
             if (_isEditing || !hasBudget)
               Form(
                 key: _formKey,
-                child: Row(
+                child: Column(
                   children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _controller,
-                        autofocus: _isEditing,
+                    // Percentage input (if percentage mode)
+                    if (_isPercentageMode && canUsePercentage) ...[
+                      TextFormField(
+                        controller: _percentageController,
+                        autofocus: _isEditing && _isPercentageMode,
                         enabled: !_isSaving,
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
                         inputFormatters: [
                           FilteringTextInputFormatter.allow(
-                            RegExp(r'^\d*\.?\d{0,2}'),
+                            RegExp(r'^\d*\.?\d{0,1}'),
                           ),
                         ],
-                        decoration: InputDecoration(
-                          labelText: 'Budget mensile',
-                          prefixText: '€ ',
-                          hintText: '500.00',
-                          border: const OutlineInputBorder(),
-                          helperText: hasBudget
-                              ? 'Modifica il budget mensile'
-                              : 'Imposta un budget mensile per questa categoria',
+                        decoration: const InputDecoration(
+                          labelText: 'Percentuale del budget gruppo',
+                          suffixText: '%',
+                          hintText: '40.0',
+                          border: OutlineInputBorder(),
+                          helperText: 'Imposta la tua percentuale del budget gruppo',
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Inserisci un importo';
+                            return 'Inserisci una percentuale';
                           }
-                          final amount = double.tryParse(value);
-                          if (amount == null) {
-                            return 'Importo non valido';
+                          final percentage = double.tryParse(value);
+                          if (percentage == null) {
+                            return 'Percentuale non valida';
                           }
-                          if (amount < 0) {
-                            return 'L\'importo non può essere negativo';
+                          if (percentage < 0 || percentage > 100) {
+                            return 'La percentuale deve essere tra 0 e 100';
                           }
-                          if (amount == 0) {
-                            return 'L\'importo deve essere maggiore di zero';
-                          }
-                          if (amount > 999999.99) {
-                            return 'Importo troppo elevato';
+                          if (percentage == 0) {
+                            return 'La percentuale deve essere maggiore di zero';
                           }
                           return null;
                         },
-                        onFieldSubmitted: (_) => _saveBudget(),
+                        onChanged: _onPercentageChanged,
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    if (_isSaving)
-                      const Padding(
-                        padding: EdgeInsets.all(12.0),
-                        child: SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      )
-                    else ...[
-                      IconButton(
-                        icon: const Icon(Icons.check, color: Colors.green),
-                        onPressed: _saveBudget,
-                        tooltip: 'Salva',
-                      ),
-                      if (_isEditing && hasBudget)
-                        IconButton(
-                          icon: const Icon(Icons.close, color: Colors.grey),
-                          onPressed: () {
-                            setState(() {
-                              _isEditing = false;
-                              _controller.text =
-                                  (widget.currentBudget! / 100).toStringAsFixed(2);
-                            });
-                          },
-                          tooltip: 'Annulla',
-                        ),
+                      const SizedBox(height: 12),
                     ],
+
+                    // Euro input
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: _euroController,
+                            autofocus: _isEditing && !_isPercentageMode,
+                            enabled: !_isSaving,
+                            readOnly: _isPercentageMode && canUsePercentage,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            inputFormatters: [
+                              FilteringTextInputFormatter.allow(
+                                RegExp(r'^\d*\.?\d{0,2}'),
+                              ),
+                            ],
+                            decoration: InputDecoration(
+                              labelText: _isPercentageMode && canUsePercentage
+                                  ? 'Budget calcolato'
+                                  : 'Budget mensile',
+                              prefixText: '€ ',
+                              hintText: '500.00',
+                              border: const OutlineInputBorder(),
+                              helperText: _isPercentageMode && canUsePercentage
+                                  ? 'Calcolato automaticamente dalla percentuale'
+                                  : hasBudget
+                                      ? 'Modifica il budget mensile'
+                                      : 'Imposta un budget mensile per questa categoria',
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Inserisci un importo';
+                              }
+                              final amount = double.tryParse(value);
+                              if (amount == null) {
+                                return 'Importo non valido';
+                              }
+                              if (amount < 0) {
+                                return 'L\'importo non può essere negativo';
+                              }
+                              if (!_isPercentageMode && amount == 0) {
+                                return 'L\'importo deve essere maggiore di zero';
+                              }
+                              if (amount > 999999.99) {
+                                return 'Importo troppo elevato';
+                              }
+                              return null;
+                            },
+                            onChanged: _isPercentageMode ? null : _onEuroChanged,
+                            onFieldSubmitted: (_) => _saveBudget(),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        if (_isSaving || _isLoadingPreviousPercentage)
+                          const Padding(
+                            padding: EdgeInsets.all(12.0),
+                            child: SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        else ...[
+                          IconButton(
+                            icon: const Icon(Icons.check, color: Colors.green),
+                            onPressed: _saveBudget,
+                            tooltip: 'Salva',
+                          ),
+                          if (_isEditing && hasBudget)
+                            IconButton(
+                              icon: const Icon(Icons.close, color: Colors.grey),
+                              onPressed: () {
+                                setState(() {
+                                  _isEditing = false;
+                                  _euroController.text =
+                                      (widget.currentBudget! / 100).toStringAsFixed(2);
+                                  if (widget.initialPercentage != null) {
+                                    _percentageController.text =
+                                        widget.initialPercentage!.toStringAsFixed(1);
+                                  }
+                                });
+                              },
+                              tooltip: 'Annulla',
+                            ),
+                        ],
+                      ],
+                    ),
                   ],
                 ),
               )
@@ -317,12 +595,27 @@ class _CategoryBudgetCardState extends State<CategoryBudgetCard> {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        '€ ${(widget.currentBudget! / 100).toStringAsFixed(2)}',
-                        style: theme.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.primary,
-                        ),
+                      Row(
+                        children: [
+                          Text(
+                            '€ ${(widget.currentBudget! / 100).toStringAsFixed(2)}',
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                          if (widget.initialPercentage != null) ...[
+                            const SizedBox(width: 8),
+                            Chip(
+                              label: Text(
+                                '${widget.initialPercentage!.toStringAsFixed(1)}%',
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                              backgroundColor: theme.colorScheme.secondaryContainer,
+                              visualDensity: VisualDensity.compact,
+                            ),
+                          ],
+                        ],
                       ),
                     ],
                   ),

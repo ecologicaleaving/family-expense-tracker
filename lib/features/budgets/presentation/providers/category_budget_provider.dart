@@ -93,6 +93,7 @@ class CategoryBudgetNotifier extends StateNotifier<CategoryBudgetState> {
   Future<bool> createBudget({
     required String categoryId,
     required int amount,
+    bool isGroupBudget = true, // Default to group budget for backward compatibility
   }) async {
     final result = await _repository.createCategoryBudget(
       categoryId: categoryId,
@@ -100,6 +101,7 @@ class CategoryBudgetNotifier extends StateNotifier<CategoryBudgetState> {
       amount: amount,
       month: _month,
       year: _year,
+      isGroupBudget: isGroupBudget,
     );
 
     return result.fold(
@@ -147,6 +149,57 @@ class CategoryBudgetNotifier extends StateNotifier<CategoryBudgetState> {
         loadBudgets(); // Reload after deletion
         return true;
       },
+    );
+  }
+
+  // ========== Percentage Budget Operations (Feature 004 Extension) ==========
+
+  /// Set personal percentage budget for a category
+  Future<bool> setPersonalPercentageBudget({
+    required String categoryId,
+    required String userId,
+    required double percentage,
+  }) async {
+    final result = await _repository.setPersonalPercentageBudget(
+      categoryId: categoryId,
+      groupId: _groupId,
+      userId: userId,
+      percentage: percentage,
+      month: _month,
+      year: _year,
+    );
+
+    return result.fold(
+      (failure) {
+        state = state.copyWith(errorMessage: failure.message);
+        return false;
+      },
+      (_) {
+        loadBudgets(); // Reload after setting percentage budget
+        return true;
+      },
+    );
+  }
+
+  /// Get percentage from previous month (for auto-fill)
+  Future<double?> getPreviousMonthPercentage({
+    required String categoryId,
+    required String userId,
+  }) async {
+    final result = await _repository.getPreviousMonthPercentage(
+      categoryId: categoryId,
+      groupId: _groupId,
+      userId: userId,
+      year: _year,
+      month: _month,
+    );
+
+    return result.fold(
+      (failure) {
+        // Don't set error state for this - it's optional
+        return null;
+      },
+      (percentage) => percentage,
     );
   }
 }

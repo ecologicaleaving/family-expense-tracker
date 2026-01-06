@@ -247,6 +247,7 @@ class BudgetRepositoryImpl implements BudgetRepository {
     required int amount,
     required int month,
     required int year,
+    bool isGroupBudget = true,
   }) async {
     try {
       final budget = await remoteDataSource.createCategoryBudget(
@@ -255,6 +256,7 @@ class BudgetRepositoryImpl implements BudgetRepository {
         amount: amount,
         month: month,
         year: year,
+        isGroupBudget: isGroupBudget,
       );
       return Right(budget);
     } on AppAuthException catch (e) {
@@ -337,6 +339,146 @@ class BudgetRepositoryImpl implements BudgetRepository {
         month: month,
       );
       return Right(stats);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  // ========== Percentage Budget Operations (Feature 004 Extension) ==========
+
+  @override
+  Future<Either<Failure, List>> getGroupMembersWithPercentages({
+    required String groupId,
+    required String categoryId,
+    required int year,
+    required int month,
+  }) async {
+    try {
+      final members = await remoteDataSource.getGroupMembersWithPercentages(
+        groupId: groupId,
+        categoryId: categoryId,
+        year: year,
+        month: month,
+      );
+      return Right(members);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, int>> calculatePercentageBudget({
+    required int groupBudgetAmount,
+    required double percentage,
+  }) async {
+    try {
+      final amount = await remoteDataSource.calculatePercentageBudget(
+        groupBudgetAmount: groupBudgetAmount,
+        percentage: percentage,
+      );
+      return Right(amount);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List>> getBudgetChangeNotifications({
+    required String groupId,
+    required int year,
+    required int month,
+    String? userId,
+  }) async {
+    try {
+      final notifications = await remoteDataSource.getBudgetChangeNotifications(
+        groupId: groupId,
+        year: year,
+        month: month,
+        userId: userId,
+      );
+      return Right(notifications);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, dynamic>> setPersonalPercentageBudget({
+    required String categoryId,
+    required String groupId,
+    required String userId,
+    required double percentage,
+    required int month,
+    required int year,
+  }) async {
+    try {
+      final budget = await remoteDataSource.setPersonalPercentageBudget(
+        categoryId: categoryId,
+        groupId: groupId,
+        userId: userId,
+        percentage: percentage,
+        month: month,
+        year: year,
+      );
+      return Right(budget);
+    } on AppAuthException catch (e) {
+      return Left(AuthFailure(e.message));
+    } on PermissionException catch (e) {
+      return Left(PermissionFailure(e.message));
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, double?>> getPreviousMonthPercentage({
+    required String categoryId,
+    required String groupId,
+    required String userId,
+    required int year,
+    required int month,
+  }) async {
+    try {
+      final percentage = await remoteDataSource.getPreviousMonthPercentage(
+        categoryId: categoryId,
+        groupId: groupId,
+        userId: userId,
+        year: year,
+        month: month,
+      );
+      return Right(percentage);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List>> getPercentageHistory({
+    required String categoryId,
+    required String groupId,
+    required String userId,
+    int? limit,
+  }) async {
+    try {
+      final history = await remoteDataSource.getPercentageHistory(
+        categoryId: categoryId,
+        groupId: groupId,
+        userId: userId,
+        limit: limit,
+      );
+      return Right(history);
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));
     } catch (e) {

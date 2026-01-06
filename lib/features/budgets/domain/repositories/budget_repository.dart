@@ -115,6 +115,7 @@ abstract class BudgetRepository {
     required int amount,
     required int month,
     required int year,
+    bool isGroupBudget = true, // True for group expenses, false for personal expenses
   });
 
   /// Update an existing category budget amount.
@@ -139,5 +140,56 @@ abstract class BudgetRepository {
     required String groupId,
     required int year,
     required int month,
+  });
+
+  // ========== Percentage Budget Operations (Feature 004 Extension) ==========
+
+  /// Get group members with their percentage budget contributions
+  Future<Either<Failure, List>> getGroupMembersWithPercentages({
+    required String groupId,
+    required String categoryId,
+    required int year,
+    required int month,
+  });
+
+  /// Calculate percentage budget amount
+  Future<Either<Failure, int>> calculatePercentageBudget({
+    required int groupBudgetAmount,
+    required double percentage,
+  });
+
+  /// Get budget change notifications for user
+  Future<Either<Failure, List>> getBudgetChangeNotifications({
+    required String groupId,
+    required int year,
+    required int month,
+    String? userId,
+  });
+
+  /// Set personal percentage budget
+  Future<Either<Failure, dynamic>> setPersonalPercentageBudget({
+    required String categoryId,
+    required String groupId,
+    required String userId,
+    required double percentage,
+    required int month,
+    required int year,
+  });
+
+  /// Get percentage from previous month
+  Future<Either<Failure, double?>> getPreviousMonthPercentage({
+    required String categoryId,
+    required String groupId,
+    required String userId,
+    required int year,
+    required int month,
+  });
+
+  /// Get percentage history for a user/category
+  Future<Either<Failure, List>> getPercentageHistory({
+    required String categoryId,
+    required String groupId,
+    required String userId,
+    int? limit,
   });
 }

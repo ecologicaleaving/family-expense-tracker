@@ -1,7 +1,8 @@
 // Data Model: Category Budget Model extending CategoryBudgetEntity
 // Feature: Italian Categories and Budget Management (004)
-// Task: T027
+// Task: T027, Extended for percentage budgets
 
+import '../../../../core/enums/budget_type.dart';
 import '../../domain/entities/category_budget_entity.dart';
 
 class CategoryBudgetModel extends CategoryBudgetEntity {
@@ -15,6 +16,11 @@ class CategoryBudgetModel extends CategoryBudgetEntity {
     required super.createdBy,
     required super.createdAt,
     required super.updatedAt,
+    super.isGroupBudget,
+    super.budgetType,
+    super.percentageOfGroup,
+    super.userId,
+    super.calculatedAmount,
   });
 
   /// Create CategoryBudgetModel from JSON (Supabase response)
@@ -29,6 +35,15 @@ class CategoryBudgetModel extends CategoryBudgetEntity {
       createdBy: json['created_by'] as String,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
+      isGroupBudget: json['is_group_budget'] as bool? ?? true,
+      budgetType: json['budget_type'] != null
+          ? BudgetType.fromString(json['budget_type'] as String)
+          : BudgetType.fixed,
+      percentageOfGroup: json['percentage_of_group'] != null
+          ? (json['percentage_of_group'] as num).toDouble()
+          : null,
+      userId: json['user_id'] as String?,
+      calculatedAmount: json['calculated_amount'] as int?,
     );
   }
 
@@ -44,6 +59,11 @@ class CategoryBudgetModel extends CategoryBudgetEntity {
       'created_by': createdBy,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
+      'is_group_budget': isGroupBudget,
+      'budget_type': budgetType.value,
+      if (percentageOfGroup != null) 'percentage_of_group': percentageOfGroup,
+      if (userId != null) 'user_id': userId,
+      if (calculatedAmount != null) 'calculated_amount': calculatedAmount,
     };
   }
 
@@ -62,6 +82,11 @@ class CategoryBudgetModel extends CategoryBudgetEntity {
       createdBy: entity.createdBy,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
+      isGroupBudget: entity.isGroupBudget,
+      budgetType: entity.budgetType,
+      percentageOfGroup: entity.percentageOfGroup,
+      userId: entity.userId,
+      calculatedAmount: entity.calculatedAmount,
     );
   }
 }
