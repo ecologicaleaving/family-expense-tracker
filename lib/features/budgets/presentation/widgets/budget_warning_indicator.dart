@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+import '../../../../app/app_theme.dart';
 
 /// Budget warning indicator for 80% threshold warning
+/// Updated with Italian Brutalism design: sharp edges, thicker borders, bold geometric styling
 class BudgetWarningIndicator extends StatelessWidget {
   const BudgetWarningIndicator({
     super.key,
@@ -15,8 +19,6 @@ class BudgetWarningIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     // Don't show anything if budget is healthy
     if (!isNearLimit && !isOverBudget) {
       return const SizedBox.shrink();
@@ -25,20 +27,23 @@ class BudgetWarningIndicator extends StatelessWidget {
     String message;
     IconData icon;
     Color backgroundColor;
+    Color borderColor;
     Color textColor;
 
     if (isOverBudget) {
       final overAmount = (remainingAmount ?? 0).abs();
-      message = 'Over budget by €$overAmount';
-      icon = Icons.error_outline;
-      backgroundColor = theme.colorScheme.errorContainer;
-      textColor = theme.colorScheme.onErrorContainer;
+      message = 'OLTRE IL BUDGET DI €$overAmount';
+      icon = Icons.error;
+      backgroundColor = BudgetDesignTokens.dangerBorder.withValues(alpha: 0.1);
+      borderColor = BudgetDesignTokens.dangerBorder;
+      textColor = BudgetDesignTokens.dangerBorder;
     } else {
       // Near limit (80%+)
-      message = 'Approaching budget limit';
-      icon = Icons.warning_amber_outlined;
-      backgroundColor = Colors.orange.shade100;
-      textColor = Colors.orange.shade900;
+      message = 'VICINO AL LIMITE';
+      icon = Icons.warning;
+      backgroundColor = BudgetDesignTokens.warningBorder.withValues(alpha: 0.1);
+      borderColor = BudgetDesignTokens.warningBorder;
+      textColor = BudgetDesignTokens.warningBorder;
     }
 
     return Semantics(
@@ -48,14 +53,18 @@ class BudgetWarningIndicator extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: backgroundColor,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(2), // Sharp, brutalist
+          border: Border.all(
+            color: borderColor,
+            width: 2, // Thicker border
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               icon,
-              size: 20,
+              size: 18,
               color: textColor,
               semanticLabel: isOverBudget ? 'Error' : 'Warning',
             ),
@@ -63,9 +72,11 @@ class BudgetWarningIndicator extends StatelessWidget {
             Flexible(
               child: Text(
                 message,
-                style: theme.textTheme.bodyMedium?.copyWith(
+                style: GoogleFonts.dmSans(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.5,
                   color: textColor,
-                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),

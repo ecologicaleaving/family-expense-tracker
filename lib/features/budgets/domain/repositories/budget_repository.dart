@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 
 import '../../../../core/errors/failures.dart';
+import '../entities/budget_composition_entity.dart';
 import '../entities/budget_stats_entity.dart';
 import '../entities/group_budget_entity.dart';
 import '../entities/personal_budget_entity.dart';
@@ -191,5 +192,35 @@ abstract class BudgetRepository {
     required String groupId,
     required String userId,
     int? limit,
+  });
+
+  // ========== Unified Budget Composition (New System) ==========
+
+  /// Get complete budget composition for a group in a specific month
+  ///
+  /// Returns a unified view of:
+  /// - Group budget (total monthly budget)
+  /// - All category budgets with member contributions
+  /// - Aggregate spending statistics
+  /// - Validation issues
+  ///
+  /// This is the main method used by the new unified budget system.
+  ///
+  /// Example:
+  /// ```dart
+  /// final result = await repository.getBudgetComposition(
+  ///   groupId: 'group123',
+  ///   year: 2026,
+  ///   month: 1,
+  /// );
+  /// result.fold(
+  ///   (failure) => handleError(failure),
+  ///   (composition) => displayBudget(composition),
+  /// );
+  /// ```
+  Future<Either<Failure, BudgetComposition>> getBudgetComposition({
+    required String groupId,
+    required int year,
+    required int month,
   });
 }

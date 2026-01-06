@@ -1,7 +1,13 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/errors/exceptions.dart';
+import '../../../../core/utils/budget_validator.dart';
 import '../../../../core/utils/timezone_handler.dart';
+import '../../../categories/domain/entities/expense_category_entity.dart';
+import '../../domain/entities/budget_composition_entity.dart';
+import '../../domain/entities/category_budget_with_members_entity.dart';
+import '../../domain/entities/group_budget_entity.dart';
+import '../../domain/entities/member_contribution_entity.dart';
 import '../models/budget_stats_model.dart';
 import '../models/group_budget_model.dart';
 import '../models/personal_budget_model.dart';
@@ -168,6 +174,21 @@ abstract class BudgetRemoteDataSource {
     required String groupId,
     required String userId,
     int? limit,
+  });
+
+  // ========== Unified Budget Composition (New System) ==========
+
+  /// Get complete budget composition for a group and month.
+  ///
+  /// Aggregates all budget data including:
+  /// - Group budget
+  /// - Category budgets with member contributions
+  /// - Spending statistics
+  /// - Validation results
+  Future<BudgetComposition> getBudgetComposition({
+    required String groupId,
+    required int year,
+    required int month,
   });
 }
 
@@ -825,6 +846,242 @@ class BudgetRemoteDataSourceImpl implements BudgetRemoteDataSource {
       throw ServerException(e.message, e.code);
     } catch (e) {
       throw ServerException('Failed to get percentage history: $e');
+    }
+  }
+
+  // ========== Unified Budget Composition (New System) ==========
+
+  @override
+  Future<BudgetComposition> getBudgetComposition({
+    required String groupId,
+    required int year,
+    required int month,
+  }) async {
+    try {
+      // Step 1: Get group budget (if set)
+      GroupBudgetEntity? groupBudget;
+      try {
+        final groupBudgetModel = await getGroupBudget(
+          groupId: groupId,
+          month: month,
+          year: year,
+        );
+        groupBudget = groupBudgetModel?.toEntity();
+      } catch (e) {
+        // Group budget might not be set, continue with null
+      }
+
+      // Step 2: Get all category budgets for this month
+      final categoryBudgetsData = await getCategoryBudgets(
+        groupId: groupId,
+        year: year,
+        month: month,
+      );
+
+      // Step 3: Get all categories for names and colors
+      final categoriesResponse = await supabaseClient
+          .from('expense_categories')
+          .select()
+          .eq('group_id', groupId);
+
+      final categoriesMap = <String, ExpenseCategoryEntity>{};
+      for (final catData in categoriesResponse) {
+        final category = ExpenseCategoryEntity(
+          id: catData['id'] as String,
+          groupId: catData['group_id'] as String,
+          name: catData['name'] as String,
+          isDefault: catData['is_default'] as bool? ?? false,
+          createdBy: catData['created_by'] as String?,
+          createdAt: DateTime.parse(catData['created_at'] as String),
+          updatedAt: DateTime.parse(catData['updated_at'] as String),
+          expenseCount: catData['expense_count'] as int?,
+        );
+        categoriesMap[category.id] = category;
+      }
+
+      // Step 4: Build CategoryBudgetWithMembers for each category budget
+      final categoryBudgetsList = <CategoryBudgetWithMembers>[];
+
+      for (final budgetData in categoryBudgetsData) {
+        final categoryId = budgetData['category_id'] as String;
+        final isGroupBudget = budgetData['is_group_budget'] as bool? ?? true;
+        final budgetAmount = (budgetData['amount'] as num).toInt();
+        final budgetId = budgetData['id'] as String;
+
+        // Get category info
+        final category = categoriesMap[categoryId];
+        if (category == null) continue; // Skip if category not found
+
+        // Generate color hash (consistent per category)
+        final colorHash = categoryId.hashCode;
+        final categoryColor = 0xFF000000 + (colorHash.abs() % 0xFFFFFF);
+
+        // Get member contributions for this category (personal budgets)
+        final memberContributions = <MemberContribution>[];
+
+        // Query personal budgets for this category (without join to avoid ambiguity)
+        final personalBudgetsResponse = await supabaseClient
+            .from('category_budgets')
+            .select('user_id, amount, budget_type, percentage_of_group, calculated_amount')
+            .eq('category_id', categoryId)
+            .eq('group_id', groupId)
+            .eq('is_group_budget', false)
+            .eq('month', month)
+            .eq('year', year);
+
+        // Get user IDs to fetch profiles
+        final userIds = personalBudgetsResponse
+            .map((b) => b['user_id'] as String?)
+            .where((id) => id != null)
+            .toSet();
+
+        // Fetch profiles separately
+        final profilesMap = <String, String>{};
+        if (userIds.isNotEmpty) {
+          final profilesResponse = await supabaseClient
+              .from('profiles')
+              .select('id, full_name')
+              .inFilter('id', userIds.toList());
+
+          for (final profile in profilesResponse) {
+            profilesMap[profile['id'] as String] = profile['full_name'] as String? ?? 'Unknown';
+          }
+        }
+
+        for (final personalBudget in personalBudgetsResponse) {
+          final userId = personalBudget['user_id'] as String?;
+          if (userId == null) continue;
+
+          final userName = profilesMap[userId] ?? 'Unknown';
+          final budgetType = personalBudget['budget_type'] as String?;
+          final percentageOfGroup = (personalBudget['percentage_of_group'] as num?)?.toDouble();
+          final fixedAmount = (personalBudget['amount'] as num?)?.toInt();
+          final calculatedAmount = (personalBudget['calculated_amount'] as num?)?.toInt();
+
+          if (budgetType == 'PERCENTAGE' && percentageOfGroup != null) {
+            memberContributions.add(MemberContribution.percentage(
+              userId: userId,
+              userName: userName,
+              percentage: percentageOfGroup,
+              categoryGroupBudget: budgetAmount,
+            ));
+          } else if (budgetType == 'FIXED' && fixedAmount != null) {
+            memberContributions.add(MemberContribution.fixed(
+              userId: userId,
+              userName: userName,
+              amount: fixedAmount,
+            ));
+          } else if (calculatedAmount != null) {
+            // Fallback: use calculated amount as fixed
+            memberContributions.add(MemberContribution.fixed(
+              userId: userId,
+              userName: userName,
+              amount: calculatedAmount,
+            ));
+          }
+        }
+
+        // Calculate spending stats for this category
+        final startOfMonth = DateTime(year, month, 1);
+        final endOfMonth = DateTime(year, month + 1, 0, 23, 59, 59);
+
+        // Query expenses for this category (group expenses only for group budget)
+        var expensesQuery = supabaseClient
+            .from('expenses')
+            .select('amount')
+            .eq('group_id', groupId)
+            .eq('category_id', categoryId)
+            .gte('date', startOfMonth.toIso8601String().split('T')[0])
+            .lte('date', endOfMonth.toIso8601String().split('T')[0]);
+
+        if (isGroupBudget) {
+          expensesQuery = expensesQuery.eq('is_group_expense', true);
+        }
+
+        final expensesResponse = await expensesQuery;
+
+        // Sum up expenses
+        int spentAmount = 0;
+        for (final expense in expensesResponse) {
+          spentAmount += (expense['amount'] as num).toInt();
+        }
+
+        // Create stats
+        final stats = CategoryStats.fromAmounts(
+          budgetAmount: budgetAmount,
+          spentAmount: spentAmount,
+        );
+
+        // Create CategoryBudgetWithMembers
+        categoryBudgetsList.add(CategoryBudgetWithMembers(
+          categoryId: categoryId,
+          categoryName: category.name,
+          categoryColor: categoryColor,
+          groupBudgetId: budgetId,
+          groupBudgetAmount: budgetAmount,
+          memberContributions: memberContributions,
+          stats: stats,
+          month: month,
+          year: year,
+        ));
+      }
+
+      // Step 5: Calculate aggregate stats
+      int totalCategoryBudgets = 0;
+      int totalSpent = 0;
+      int alertCategoriesCount = 0;
+      int overBudgetCount = 0;
+      int nearLimitCount = 0;
+
+      for (final categoryBudget in categoryBudgetsList) {
+        totalCategoryBudgets += categoryBudget.groupBudgetAmount;
+        totalSpent += categoryBudget.stats.spentAmount;
+
+        if (categoryBudget.stats.isOverBudget) {
+          overBudgetCount++;
+          alertCategoriesCount++;
+        } else if (categoryBudget.stats.isNearLimit) {
+          nearLimitCount++;
+          alertCategoriesCount++;
+        }
+      }
+
+      final totalRemaining = totalCategoryBudgets - totalSpent;
+      final overallPercentageUsed = totalCategoryBudgets > 0
+          ? (totalSpent / totalCategoryBudgets) * 100.0
+          : 0.0;
+
+      final stats = BudgetStats(
+        totalCategoryBudgets: totalCategoryBudgets,
+        totalSpent: totalSpent,
+        totalRemaining: totalRemaining,
+        overallPercentageUsed: overallPercentageUsed,
+        categoriesWithBudgets: categoryBudgetsList.length,
+        alertCategoriesCount: alertCategoriesCount,
+        overBudgetCount: overBudgetCount,
+        nearLimitCount: nearLimitCount,
+      );
+
+      // Step 6: Create composition
+      final composition = BudgetComposition(
+        groupBudget: groupBudget,
+        categoryBudgets: categoryBudgetsList,
+        stats: stats,
+        issues: const [], // Will be filled by validation
+        month: month,
+        year: year,
+        groupId: groupId,
+      );
+
+      // Step 7: Validate and add issues
+      final validationIssues = BudgetValidator.validateComposition(composition);
+
+      // Return composition with validation issues
+      return composition.copyWith(issues: validationIssues);
+    } on PostgrestException catch (e) {
+      throw ServerException(e.message, e.code);
+    } catch (e) {
+      throw ServerException('Failed to get budget composition: $e');
     }
   }
 }

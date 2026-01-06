@@ -1,0 +1,335 @@
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+import '../../../../app/app_theme.dart';
+import '../../../../core/utils/currency_utils.dart';
+import '../../domain/entities/budget_composition_entity.dart';
+
+/// Overview card showing budget totals and progress
+///
+/// Displays:
+/// - Total budgeted vs total spent
+/// - Overall progress bar
+/// - Quick stats (categories, alerts)
+///
+/// Example:
+/// ```dart
+/// BudgetOverviewCard(composition: budgetComposition)
+/// ```
+class BudgetOverviewCard extends StatelessWidget {
+  const BudgetOverviewCard({
+    super.key,
+    required this.composition,
+    this.onTap,
+  });
+
+  final BudgetComposition composition;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final stats = composition.stats;
+    final hasGroupBudget = composition.hasGroupBudget;
+
+    // Calculate progress
+    final progressPercentage = stats.overallPercentageUsed.clamp(0.0, 100.0);
+    final isOverBudget = stats.isOverBudget;
+    final isNearLimit = stats.isNearLimit && !isOverBudget;
+
+    // Determine colors based on status
+    Color progressColor;
+    if (isOverBudget) {
+      progressColor = AppColors.error;
+    } else if (isNearLimit) {
+      progressColor = AppColors.warning;
+    } else {
+      progressColor = AppColors.success;
+    }
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.cream,
+          borderRadius: BorderRadius.circular(4),
+          border: Border(
+            left: BorderSide(
+              color: AppColors.terracotta,
+              width: 4,
+            ),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.ink.withValues(alpha: 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              children: [
+                Icon(
+                  Icons.account_balance_wallet,
+                  color: AppColors.terracotta,
+                  size: 28,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Budget Totale',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 1.0,
+                          color: AppColors.inkLight,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${composition.month}/${composition.year}',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 12,
+                          color: AppColors.inkFaded,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (onTap != null)
+                  Icon(
+                    Icons.arrow_forward_ios,
+                    size: 16,
+                    color: AppColors.inkLight,
+                  ),
+              ],
+            ),
+
+            const SizedBox(height: 20),
+
+            // Amounts
+            if (hasGroupBudget) ...[
+              // Group budget amount
+              Row(
+                children: [
+                  Text(
+                    'Budget Gruppo:',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 12,
+                      color: AppColors.inkLight,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    CurrencyUtils.formatCentsCompact(composition.groupBudgetAmount),
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.ink,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+            ],
+
+            // Total budgeted (sum of category budgets)
+            Row(
+              children: [
+                Text(
+                  'Budget Categorie:',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 12,
+                    color: AppColors.inkLight,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  CurrencyUtils.formatCentsCompact(stats.totalCategoryBudgets),
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.terracotta,
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 8),
+
+            // Total spent
+            Row(
+              children: [
+                Text(
+                  'Speso:',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 12,
+                    color: AppColors.inkLight,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  CurrencyUtils.formatCentsCompact(stats.totalSpent),
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: progressColor,
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            // Progress bar
+            if (stats.hasBudgets) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(2),
+                child: Stack(
+                  children: [
+                    // Background
+                    Container(
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: AppColors.parchment,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    // Progress
+                    FractionallySizedBox(
+                      widthFactor: (progressPercentage / 100).clamp(0.0, 1.0),
+                      child: Container(
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: progressColor,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              // Percentage text
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '${stats.overallPercentageUsed.toStringAsFixed(1)}% utilizzato',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: progressColor,
+                    ),
+                  ),
+                  Text(
+                    CurrencyUtils.formatCentsCompact(stats.totalRemaining),
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.inkLight,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+
+            // Quick stats
+            if (stats.hasBudgets) ...[
+              const SizedBox(height: 16),
+              const Divider(height: 1, color: AppColors.parchmentDark),
+              const SizedBox(height: 12),
+
+              Row(
+                children: [
+                  _QuickStat(
+                    label: 'Categorie',
+                    value: '${stats.categoriesWithBudgets}',
+                    icon: Icons.category,
+                  ),
+                  const SizedBox(width: 24),
+                  if (stats.hasAlerts)
+                    _QuickStat(
+                      label: 'Allerte',
+                      value: '${stats.alertCategoriesCount}',
+                      icon: Icons.warning_amber,
+                      color: AppColors.warning,
+                    ),
+                ],
+              ),
+            ],
+
+            // Empty state
+            if (!stats.hasBudgets)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  'Nessun budget impostato',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 13,
+                    color: AppColors.inkFaded,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Quick stat display (icon + label + value)
+class _QuickStat extends StatelessWidget {
+  const _QuickStat({
+    required this.label,
+    required this.value,
+    required this.icon,
+    this.color,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final statColor = color ?? AppColors.copper;
+
+    return Row(
+      children: [
+        Icon(
+          icon,
+          size: 16,
+          color: statColor,
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: GoogleFonts.dmSans(
+            fontSize: 11,
+            color: AppColors.inkLight,
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          value,
+          style: GoogleFonts.jetBrainsMono(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: statColor,
+          ),
+        ),
+      ],
+    );
+  }
+}

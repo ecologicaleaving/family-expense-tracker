@@ -41,7 +41,7 @@ class SettingsScreen extends StatelessWidget {
             title: const Text('Budget'),
             subtitle: const Text('Imposta e monitora i budget'),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => context.push(AppRoutes.budgetSettings),
+            onTap: () => context.push(AppRoutes.budgetDashboard),
           ),
         ],
       ),

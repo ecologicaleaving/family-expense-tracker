@@ -1,25 +1,28 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/app_theme.dart';
 import '../../../../core/utils/budget_calculator.dart';
 
 /// Budget progress bar widget with percentage calculation and color coding
+/// Updated with Italian Brutalism design: thicker (12px), sharper (2px radius), segmented colors
 class BudgetProgressBar extends StatelessWidget {
   const BudgetProgressBar({
     super.key,
     required this.budgetAmount,
     required this.spentAmount,
-    this.height = 8.0,
-    this.showPercentage = true,
+    this.height,
+    this.showPercentage = false, // Default false for dashboard cards
   });
 
   final int budgetAmount;
   final int spentAmount;
-  final double height;
+  final double? height;
   final bool showPercentage;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final barHeight = height ?? BudgetDesignTokens.progressBarHeight;
     final percentage = BudgetCalculator.calculatePercentageUsed(
       budgetAmount,
       spentAmount,
@@ -27,14 +30,15 @@ class BudgetProgressBar extends StatelessWidget {
     final isOverBudget = BudgetCalculator.isOverBudget(budgetAmount, spentAmount);
     final isNearLimit = BudgetCalculator.isNearLimit(budgetAmount, spentAmount);
 
-    // Determine color based on budget status
+    // Determine color based on budget status (segmented, not gradient)
+    // Healthy: copper, Warning: gold, Danger: terracotta
     Color progressColor;
     if (isOverBudget) {
-      progressColor = theme.colorScheme.error;
+      progressColor = BudgetDesignTokens.dangerBorder; // terracotta
     } else if (isNearLimit) {
-      progressColor = Colors.orange;
+      progressColor = BudgetDesignTokens.warningBorder; // gold
     } else {
-      progressColor = theme.colorScheme.primary;
+      progressColor = BudgetDesignTokens.healthyBorder; // copper
     }
 
     // Cap percentage at 100% for progress bar display
@@ -47,13 +51,14 @@ class BudgetProgressBar extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
+          // Sharp brutalist progress bar
           ClipRRect(
-            borderRadius: BorderRadius.circular(height / 2),
+            borderRadius: BorderRadius.circular(BudgetDesignTokens.progressBarRadius), // 2px, sharper
             child: LinearProgressIndicator(
               value: displayPercentage / 100,
-              backgroundColor: theme.colorScheme.surfaceContainerHighest,
+              backgroundColor: AppColors.parchmentDark,
               valueColor: AlwaysStoppedAnimation<Color>(progressColor),
-              minHeight: height,
+              minHeight: barHeight, // 12px, thicker
               semanticsLabel: 'Budget usage progress indicator',
               semanticsValue: '${percentage.toStringAsFixed(0)} percent',
             ),

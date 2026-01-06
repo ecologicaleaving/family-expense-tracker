@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 
 import '../../../../core/errors/exceptions.dart';
 import '../../../../core/errors/failures.dart';
+import '../../domain/entities/budget_composition_entity.dart';
 import '../../domain/entities/budget_stats_entity.dart';
 import '../../domain/entities/group_budget_entity.dart';
 import '../../domain/entities/personal_budget_entity.dart';
@@ -483,6 +484,30 @@ class BudgetRepositoryImpl implements BudgetRepository {
       return Left(ServerFailure(e.message));
     } catch (e) {
       return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  // ========== Unified Budget Composition (New System) ==========
+
+  @override
+  Future<Either<Failure, BudgetComposition>> getBudgetComposition({
+    required String groupId,
+    required int year,
+    required int month,
+  }) async {
+    try {
+      final composition = await remoteDataSource.getBudgetComposition(
+        groupId: groupId,
+        year: year,
+        month: month,
+      );
+      return Right(composition);
+    } on AppAuthException catch (e) {
+      return Left(AuthFailure(e.message));
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(ServerFailure('Errore nel caricamento budget: ${e.toString()}'));
     }
   }
 }

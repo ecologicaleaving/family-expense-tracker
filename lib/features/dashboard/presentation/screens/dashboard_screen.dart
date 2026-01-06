@@ -222,7 +222,7 @@ class _DashboardContent extends ConsumerWidget {
                     groupId: groupId,
                     userId: userId,
                     onNavigateToSettings: () {
-                      context.push('/budget-settings');
+                      context.push('/budget'); // Updated to new unified dashboard
                     },
                   );
                 },
@@ -232,7 +232,7 @@ class _DashboardContent extends ConsumerWidget {
               // Category budget summary (Feature 004)
               BudgetSummaryCard(
                 onTap: () {
-                  context.push('/budget-management');
+                  context.push('/budget'); // Updated to new unified dashboard
                 },
               ),
               const SizedBox(height: 16),
@@ -241,7 +241,7 @@ class _DashboardContent extends ConsumerWidget {
               CategoryBudgetList(
                 maxItems: 5,
                 onViewAll: () {
-                  context.push('/budget-management');
+                  context.push('/budget'); // Updated to new unified dashboard
                 },
               ),
               const SizedBox(height: 16),
@@ -256,7 +256,7 @@ class _DashboardContent extends ConsumerWidget {
                     groupId: groupId,
                     userId: userId,
                     onNavigateToSettings: () {
-                      context.push('/budget-settings');
+                      context.push('/budget'); // Updated to new unified dashboard
                     },
                   );
                 },

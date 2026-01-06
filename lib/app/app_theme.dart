@@ -190,6 +190,92 @@ class AppTypography {
   );
 }
 
+/// Budget Design Tokens - "Italian Brutalism" for Budget Dashboard
+class BudgetDesignTokens {
+  BudgetDesignTokens._();
+
+  // Spacing constants
+  static const double heroHeight = 180.0;
+  static const double cardBorderWidth = 4.0;
+  static const double badgeSize = 32.0;
+  static const double progressBarHeight = 12.0;
+  static const double alertBorderWidth = 6.0;
+  static const double sectionDividerThickness = 2.0;
+  static const double barChartBarHeight = 24.0;
+  static const double quickStatsHeight = 80.0;
+
+  // Status colors (for left border on cards)
+  static const Color healthyBorder = AppColors.copper;
+  static const Color warningBorder = AppColors.gold;
+  static const Color dangerBorder = AppColors.terracotta;
+
+  // Badge colors
+  static const Color groupBadgeBg = AppColors.terracotta;
+  static const Color personalBadgeBg = AppColors.copper;
+  static const Color badgeFg = AppColors.cream;
+
+  // Typography - Hero section
+  static TextStyle get amountHero => GoogleFonts.jetBrainsMono(
+    fontSize: 42,
+    fontWeight: FontWeight.w700,
+    color: AppColors.cream,
+    letterSpacing: -0.5,
+  );
+
+  static TextStyle get labelHero => GoogleFonts.dmSans(
+    fontSize: 11,
+    fontWeight: FontWeight.w700,
+    letterSpacing: 1.5,
+    color: AppColors.cream.withValues(alpha: 0.9),
+  );
+
+  // Typography - Section labels
+  static TextStyle get sectionLabel => GoogleFonts.dmSans(
+    fontSize: 12,
+    fontWeight: FontWeight.w700,
+    letterSpacing: 2.0,
+    color: AppColors.inkLight,
+  );
+
+  // Typography - Card amounts
+  static TextStyle get cardAmount => GoogleFonts.jetBrainsMono(
+    fontSize: 20,
+    fontWeight: FontWeight.w600,
+    color: AppColors.ink,
+  );
+
+  // Typography - Category names
+  static TextStyle get categoryName => GoogleFonts.playfairDisplay(
+    fontSize: 18,
+    fontWeight: FontWeight.w400,
+    color: AppColors.ink,
+  );
+
+  // Typography - Percentage display
+  static TextStyle get percentageText => GoogleFonts.jetBrainsMono(
+    fontSize: 16,
+    fontWeight: FontWeight.w700,
+    color: AppColors.ink,
+  );
+
+  // Shadows - Sharp brutalist shadow
+  static const BoxShadow sharpShadow = BoxShadow(
+    color: Color(0x40000000),
+    offset: Offset(0, 2),
+    blurRadius: 0,
+    spreadRadius: 0,
+  );
+
+  // Border radius
+  static const double cardRadius = 4.0;
+  static const double progressBarRadius = 2.0;
+  static const double badgeRadius = 16.0; // circle
+
+  // Animation durations
+  static const Duration snapDuration = Duration(milliseconds: 150);
+  static const Duration expandDuration = Duration(milliseconds: 200);
+}
+
 /// Main theme configuration
 class AppTheme {
   AppTheme._();

@@ -23,6 +23,8 @@ import '../features/dashboard/presentation/screens/dashboard_screen.dart';
 import '../features/auth/presentation/screens/main_navigation_screen.dart';
 import '../features/auth/presentation/screens/profile_screen.dart';
 import '../features/budgets/presentation/screens/budget_settings_screen.dart';
+import '../features/budgets/presentation/screens/budget_dashboard_screen.dart';
+import '../features/budgets/presentation/screens/budget_screen.dart';
 import '../features/categories/presentation/screens/category_management_screen.dart';
 import '../features/categories/presentation/screens/budget_management_screen.dart';
 import '../features/categories/presentation/screens/orphaned_expenses_screen.dart';
@@ -54,8 +56,9 @@ class AppRoutes {
   static const editExpense = '/expense/:id/edit';
 
   // Budget routes
-  static const budgetSettings = '/budget-settings';
-  static const budgetManagement = '/budget-management';
+  static const budgetDashboard = '/budget'; // New unified dashboard
+  static const budgetSettings = '/budget-settings'; // Kept for backward compatibility
+  static const budgetManagement = '/budget-management'; // Kept for backward compatibility
 
   // Category routes
   static const categoryManagement = '/category-management';
@@ -202,14 +205,18 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // Budget routes
       GoRoute(
+        path: AppRoutes.budgetDashboard,
+        name: 'budgetDashboard',
+        builder: (context, state) => const BudgetScreen(), // New unified budget screen
+      ),
+      // Redirect old budget routes to new unified screen
+      GoRoute(
         path: AppRoutes.budgetSettings,
-        name: 'budgetSettings',
-        builder: (context, state) => const BudgetSettingsScreen(),
+        redirect: (context, state) => AppRoutes.budgetDashboard,
       ),
       GoRoute(
         path: AppRoutes.budgetManagement,
-        name: 'budgetManagement',
-        builder: (context, state) => const BudgetManagementScreen(),
+        redirect: (context, state) => AppRoutes.budgetDashboard,
       ),
 
       // Category routes
