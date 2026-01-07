@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../app/app_theme.dart';
+import '../../../../core/utils/currency_utils.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../groups/presentation/providers/group_provider.dart';
 import '../providers/budget_actions_provider.dart';
@@ -37,7 +38,12 @@ class _BudgetSettingsScreenState extends ConsumerState<BudgetSettingsScreen> {
     setState(() => _isSubmittingGroup = true);
 
     try {
-      final amount = int.parse(_groupBudgetController.text);
+      // Parse input as cents (user enters euros, we store cents)
+      final amount = CurrencyUtils.parseCentsFromInput(_groupBudgetController.text);
+      if (amount == null) {
+        throw const FormatException('Importo non valido');
+      }
+
       final now = DateTime.now();
       final groupId = ref.read(currentGroupIdProvider);
 
@@ -79,7 +85,12 @@ class _BudgetSettingsScreenState extends ConsumerState<BudgetSettingsScreen> {
     setState(() => _isSubmittingPersonal = true);
 
     try {
-      final amount = int.parse(_personalBudgetController.text);
+      // Parse input as cents (user enters euros, we store cents)
+      final amount = CurrencyUtils.parseCentsFromInput(_personalBudgetController.text);
+      if (amount == null) {
+        throw const FormatException('Importo non valido');
+      }
+
       final now = DateTime.now();
       final userId = ref.read(currentUserIdProvider);
 

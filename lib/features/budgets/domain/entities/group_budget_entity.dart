@@ -21,7 +21,8 @@ class GroupBudgetEntity extends Equatable {
   /// The family group this budget belongs to
   final String groupId;
 
-  /// Budget amount in whole euros (no cents)
+  /// Budget amount in cents (e.g., 50000 = €500.00)
+  /// Stored as cents to avoid floating-point precision errors
   final int amount;
 
   /// Month number (1-12)

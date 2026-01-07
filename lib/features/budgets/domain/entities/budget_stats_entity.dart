@@ -18,13 +18,15 @@ class BudgetStatsEntity extends Equatable {
   /// Budget ID (null if no budget set)
   final String? budgetId;
 
-  /// Budget amount in whole euros (null if no budget set)
+  /// Budget amount in cents (null if no budget set)
+  /// e.g., 50000 = €500.00
   final int? budgetAmount;
 
-  /// Spent amount in whole euros (rounded up from expense totals)
+  /// Spent amount in cents (converted from expense totals)
+  /// e.g., 69000 = €690.00
   final int spentAmount;
 
-  /// Remaining amount in whole euros (null if no budget set, can be negative if over budget)
+  /// Remaining amount in cents (null if no budget set, can be negative if over budget)
   final int? remainingAmount;
 
   /// Percentage of budget used (0-100+, null if no budget set)

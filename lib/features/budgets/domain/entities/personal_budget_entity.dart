@@ -20,7 +20,8 @@ class PersonalBudgetEntity extends Equatable {
   /// The user this budget belongs to
   final String userId;
 
-  /// Budget amount in whole euros (no cents)
+  /// Budget amount in cents (e.g., 50000 = €500.00)
+  /// Stored as cents to avoid floating-point precision errors
   final int amount;
 
   /// Month number (1-12)

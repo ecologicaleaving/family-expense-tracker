@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/utils/budget_calculator.dart';
+import '../../../../core/utils/currency_utils.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../categories/presentation/providers/category_provider.dart';
 import '../../../groups/presentation/providers/group_provider.dart';
@@ -121,9 +122,9 @@ final unifiedBudgetStatsProvider = FutureProvider.family<
 
         int spentAmount = spentAmountCents;
 
-        // Calculate percentage
+        // Calculate percentage (both amounts are in cents)
         final percentageUsed = budgetAmount > 0
-            ? BudgetCalculator.calculatePercentageUsed(budgetAmount, spentAmount)
+            ? CurrencyUtils.calculatePercentageUsed(budgetAmount, spentAmount)
             : 0.0;
 
         final isOverBudget = BudgetCalculator.isOverBudget(budgetAmount, spentAmount);
@@ -194,9 +195,9 @@ final unifiedBudgetStatsProvider = FutureProvider.family<
         return a.categoryName.compareTo(b.categoryName);
       });
 
-      // Calculate overall percentage
+      // Calculate overall percentage (both amounts are in cents)
       final overallPercentageUsed = totalBudgeted > 0
-          ? BudgetCalculator.calculatePercentageUsed(totalBudgeted, totalSpent)
+          ? CurrencyUtils.calculatePercentageUsed(totalBudgeted, totalSpent)
           : 0.0;
 
       // Get group and personal budgets

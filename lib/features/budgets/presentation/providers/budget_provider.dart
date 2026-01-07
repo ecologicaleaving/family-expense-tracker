@@ -261,69 +261,65 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
     }).toList();
 
     // Calculate group budget stats
+    // Convert expense amounts from euros to cents for consistency with budget storage
     final groupExpenses = currentMonthExpenses
         .where((e) => e.isGroupExpense)
         .map((e) => e.amount)
         .toList();
 
-    final groupSpent = BudgetCalculator.calculateSpentAmount(groupExpenses);
+    final groupSpentCents = groupExpenses.fold<int>(
+      0,
+      (sum, euroAmount) => sum + (euroAmount * 100).round(),
+    );
     final groupBudgetAmount = state.groupBudget?.amount ?? 0;
 
     final groupStats = BudgetStatsEntity(
       budgetId: state.groupBudget?.id,
       budgetAmount: state.groupBudget?.amount,
-      spentAmount: groupSpent,
+      spentAmount: groupSpentCents,
       remainingAmount: state.groupBudget != null
-          ? BudgetCalculator.calculateRemainingAmount(
-              groupBudgetAmount,
-              groupSpent,
-            )
+          ? groupBudgetAmount - groupSpentCents
           : null,
       percentageUsed: state.groupBudget != null
-          ? BudgetCalculator.calculatePercentageUsed(
-              groupBudgetAmount,
-              groupSpent,
-            )
+          ? (groupBudgetAmount > 0 ? (groupSpentCents / groupBudgetAmount * 100) : 0.0)
           : null,
       isOverBudget: state.groupBudget != null
-          ? BudgetCalculator.isOverBudget(groupBudgetAmount, groupSpent)
+          ? groupSpentCents >= groupBudgetAmount
           : false,
       isNearLimit: state.groupBudget != null
-          ? BudgetCalculator.isNearLimit(groupBudgetAmount, groupSpent)
+          ? (groupBudgetAmount > 0 && (groupSpentCents / groupBudgetAmount) >= 0.8)
           : false,
       expenseCount: groupExpenses.length,
     );
 
     // Calculate personal budget stats (user's expenses: both personal + group)
+    // Convert expense amounts from euros to cents for consistency with budget storage
     final personalExpenses = currentMonthExpenses
         .where((e) => e.createdBy == _userId)
         .map((e) => e.amount)
         .toList();
 
-    final personalSpent = BudgetCalculator.calculateSpentAmount(personalExpenses);
+    final personalSpentCents = personalExpenses.fold<int>(
+      0,
+      (sum, euroAmount) => sum + (euroAmount * 100).round(),
+    );
     final personalBudgetAmount = state.personalBudget?.amount ?? 0;
 
     final personalStats = BudgetStatsEntity(
       budgetId: state.personalBudget?.id,
       budgetAmount: state.personalBudget?.amount,
-      spentAmount: personalSpent,
+      spentAmount: personalSpentCents,
       remainingAmount: state.personalBudget != null
-          ? BudgetCalculator.calculateRemainingAmount(
-              personalBudgetAmount,
-              personalSpent,
-            )
+          ? personalBudgetAmount - personalSpentCents
           : null,
       percentageUsed: state.personalBudget != null
-          ? BudgetCalculator.calculatePercentageUsed(
-              personalBudgetAmount,
-              personalSpent,
-            )
+          ? (personalBudgetAmount > 0 ? (personalSpentCents / personalBudgetAmount * 100) : 0.0)
           : null,
       isOverBudget: state.personalBudget != null
-          ? BudgetCalculator.isOverBudget(personalBudgetAmount, personalSpent)
+          ? personalSpentCents >= personalBudgetAmount
           : false,
       isNearLimit: state.personalBudget != null
-          ? BudgetCalculator.isNearLimit(personalBudgetAmount, personalSpent)
+          ? (personalBudgetAmount > 0 && (personalSpentCents / personalBudgetAmount) >= 0.8)
           : false,
       expenseCount: personalExpenses.length,
     );
