@@ -118,9 +118,12 @@ class CategoryNotifier extends StateNotifier<CategoryState> {
             );
           }
         },
-        (categories) async {
+        (categories) {
           // Successfully loaded from server - cache them for offline use
-          await _cacheDataSource.cacheCategories(_groupId, categories);
+          _cacheDataSource.cacheCategories(_groupId, categories).catchError((e) {
+            // Cache failed but still show categories
+            print('Failed to cache categories: $e');
+          });
 
           state = state.copyWith(
             categories: categories,
