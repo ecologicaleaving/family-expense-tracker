@@ -1,9 +1,12 @@
+import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../domain/entities/expense_category_entity.dart';
 import '../../domain/repositories/category_repository.dart';
 import 'category_repository_provider.dart';
+import '../../../../core/config/default_italian_categories.dart';
 
 /// State for category management
 class CategoryState {
@@ -83,21 +86,72 @@ class CategoryNotifier extends StateNotifier<CategoryState> {
       );
 
       result.fold(
-        (failure) => state = state.copyWith(
-          isLoading: false,
-          errorMessage: failure.message,
-        ),
+        (failure) {
+          // Check if this is a network error
+          if (_isNetworkError(failure.message)) {
+            // Use offline fallback categories
+            state = state.copyWith(
+              categories: _getOfflineFallbackCategories(),
+              isLoading: false,
+              errorMessage: null, // Clear error since we have fallback
+            );
+          } else {
+            state = state.copyWith(
+              isLoading: false,
+              errorMessage: failure.message,
+            );
+          }
+        },
         (categories) => state = state.copyWith(
           categories: categories,
           isLoading: false,
         ),
       );
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: 'Failed to load categories: $e',
-      );
+      // Check if this is a network-related exception
+      if (e is SocketException ||
+          e.toString().contains('SocketException') ||
+          e.toString().contains('Failed host lookup') ||
+          e.toString().contains('ClientException')) {
+        // Use offline fallback categories
+        state = state.copyWith(
+          categories: _getOfflineFallbackCategories(),
+          isLoading: false,
+          errorMessage: null, // Clear error since we have fallback
+        );
+      } else {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: 'Failed to load categories: $e',
+        );
+      }
     }
+  }
+
+  /// Check if error message indicates a network error
+  bool _isNetworkError(String? message) {
+    if (message == null) return false;
+    return message.contains('SocketException') ||
+        message.contains('Failed host lookup') ||
+        message.contains('ClientException') ||
+        message.contains('NetworkException');
+  }
+
+  /// Get offline fallback categories using Italian defaults
+  List<ExpenseCategoryEntity> _getOfflineFallbackCategories() {
+    const uuid = Uuid();
+    final now = DateTime.now();
+
+    return DefaultItalianCategories.categories.map((categoryName) {
+      return ExpenseCategoryEntity(
+        id: 'offline-${uuid.v4()}',
+        name: categoryName,
+        groupId: _groupId,
+        isDefault: true,
+        createdAt: now,
+        updatedAt: now,
+      );
+    }).toList();
   }
 
   /// Subscribe to Supabase realtime for multi-device sync
