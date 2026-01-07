@@ -99,8 +99,6 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
             ? 'Nessuna spesa corrisponde ai filtri selezionati'
             : 'Non hai ancora registrato nessuna spesa',
         icon: Icons.receipt_long_outlined,
-        action: () => context.go('/scan-receipt'),
-        actionLabel: 'Aggiungi la prima spesa',
       );
     }
 
