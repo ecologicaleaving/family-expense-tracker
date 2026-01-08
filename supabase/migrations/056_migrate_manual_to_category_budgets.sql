@@ -102,6 +102,7 @@ SECURITY DEFINER
 AS $$
 DECLARE
     v_personal_budget RECORD;
+    v_user_group_id UUID;
     v_system_category_id UUID;
     v_existing_budget_id UUID;
 BEGIN
@@ -115,16 +116,26 @@ BEGIN
         RETURN;
     END IF;
 
+    -- Get user's group_id from profiles table
+    SELECT group_id INTO v_user_group_id
+    FROM profiles
+    WHERE id = v_personal_budget.user_id;
+
+    IF v_user_group_id IS NULL THEN
+        RAISE WARNING 'User % has no group, skipping personal budget migration', v_personal_budget.user_id;
+        RETURN;
+    END IF;
+
     -- Get system category ID
     SELECT id INTO v_system_category_id
     FROM expense_categories
-    WHERE group_id = v_personal_budget.group_id
+    WHERE group_id = v_user_group_id
     AND is_system_category = true
     AND is_default = true
     LIMIT 1;
 
     IF v_system_category_id IS NULL THEN
-        RAISE WARNING 'System category not found for group %, skipping', v_personal_budget.group_id;
+        RAISE WARNING 'System category not found for group %, skipping', v_user_group_id;
         RETURN;
     END IF;
 
@@ -132,7 +143,7 @@ BEGIN
     SELECT id INTO v_existing_budget_id
     FROM category_budgets
     WHERE category_id = v_system_category_id
-    AND group_id = v_personal_budget.group_id
+    AND group_id = v_user_group_id
     AND year = v_personal_budget.year
     AND month = v_personal_budget.month
     AND created_by = v_personal_budget.user_id
@@ -153,7 +164,7 @@ BEGIN
             updated_at
         ) VALUES (
             v_system_category_id,
-            v_personal_budget.group_id,
+            v_user_group_id,
             v_personal_budget.amount,
             v_personal_budget.month,
             v_personal_budget.year,
