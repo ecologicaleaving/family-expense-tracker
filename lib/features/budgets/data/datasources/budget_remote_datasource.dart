@@ -891,6 +891,14 @@ class BudgetRemoteDataSourceImpl implements BudgetRemoteDataSource {
     required int month,
   }) async {
     try {
+      // Step 0: Ensure "Altro" system category exists
+      // This ensures there's always a catch-all category for uncategorized expenses
+      await ensureAltroCategory(
+        groupId: groupId,
+        year: year,
+        month: month,
+      );
+
       // Step 1: Get group budget (if set)
       GroupBudgetEntity? groupBudget;
       try {
