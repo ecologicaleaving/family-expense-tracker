@@ -37,6 +37,13 @@ class SettingsScreen extends StatelessWidget {
             onTap: () => context.push(AppRoutes.categoryManagement),
           ),
           ListTile(
+            leading: const Icon(Icons.payment),
+            title: const Text('Metodi di Pagamento'),
+            subtitle: const Text('Gestisci i tuoi metodi di pagamento'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push(AppRoutes.paymentMethodManagement),
+          ),
+          ListTile(
             leading: const Icon(Icons.account_balance_wallet),
             title: const Text('Budget'),
             subtitle: const Text('Imposta e monitora i budget'),

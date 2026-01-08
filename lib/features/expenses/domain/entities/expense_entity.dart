@@ -10,6 +10,8 @@ class ExpenseEntity extends Equatable {
     required this.date,
     this.categoryId,
     this.categoryName,
+    required this.paymentMethodId,
+    this.paymentMethodName,
     this.isGroupExpense = true,
     this.merchant,
     this.notes,
@@ -39,6 +41,12 @@ class ExpenseEntity extends Equatable {
 
   /// Category name for display (denormalized from expense_categories)
   final String? categoryName;
+
+  /// Payment method ID (foreign key to payment_methods table)
+  final String paymentMethodId;
+
+  /// Payment method name for display (denormalized from payment_methods)
+  final String? paymentMethodName;
 
   /// Expense classification: true for group expenses (visible to all), false for personal (visible only to creator)
   final bool isGroupExpense;
@@ -87,6 +95,8 @@ class ExpenseEntity extends Equatable {
       date: DateTime.now(),
       categoryId: null,
       categoryName: null,
+      paymentMethodId: '',
+      paymentMethodName: null,
     );
   }
 
@@ -105,6 +115,8 @@ class ExpenseEntity extends Equatable {
     DateTime? date,
     String? categoryId,
     String? categoryName,
+    String? paymentMethodId,
+    String? paymentMethodName,
     bool? isGroupExpense,
     String? merchant,
     String? notes,
@@ -121,6 +133,8 @@ class ExpenseEntity extends Equatable {
       date: date ?? this.date,
       categoryId: categoryId ?? this.categoryId,
       categoryName: categoryName ?? this.categoryName,
+      paymentMethodId: paymentMethodId ?? this.paymentMethodId,
+      paymentMethodName: paymentMethodName ?? this.paymentMethodName,
       isGroupExpense: isGroupExpense ?? this.isGroupExpense,
       merchant: merchant ?? this.merchant,
       notes: notes ?? this.notes,
@@ -140,6 +154,8 @@ class ExpenseEntity extends Equatable {
         date,
         categoryId,
         categoryName,
+        paymentMethodId,
+        paymentMethodName,
         isGroupExpense,
         merchant,
         notes,

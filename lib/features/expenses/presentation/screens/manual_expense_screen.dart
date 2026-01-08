@@ -18,6 +18,7 @@ import '../../../groups/presentation/providers/group_provider.dart';
 import '../providers/expense_provider.dart';
 import '../widgets/category_selector.dart';
 import '../widgets/expense_type_toggle.dart';
+import '../widgets/payment_method_selector.dart';
 
 /// Screen for manual expense entry.
 class ManualExpenseScreen extends ConsumerStatefulWidget {
@@ -35,6 +36,7 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
   final _notesController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
   String? _selectedCategoryId; // Will be set when categories load
+  String? _selectedPaymentMethodId; // Will be set to default Contanti
   bool _isGroupExpense = true; // Default to group expense
 
   // Track initial values for unsaved changes detection
@@ -43,6 +45,7 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
   late final String _initialNotes;
   late final DateTime _initialDate;
   late final String? _initialCategoryId;
+  late final String? _initialPaymentMethodId;
   late final bool _initialIsGroupExpense;
 
   @override
@@ -54,6 +57,7 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
     _initialNotes = _notesController.text;
     _initialDate = _selectedDate;
     _initialCategoryId = _selectedCategoryId;
+    _initialPaymentMethodId = _selectedPaymentMethodId;
     _initialIsGroupExpense = _isGroupExpense;
   }
 
@@ -72,6 +76,7 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
         _notesController.text != _initialNotes ||
         _selectedDate != _initialDate ||
         _selectedCategoryId != _initialCategoryId ||
+        _selectedPaymentMethodId != _initialPaymentMethodId ||
         _isGroupExpense != _initialIsGroupExpense;
   }
 
@@ -91,6 +96,16 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
       return;
     }
 
+    // Validate payment method is selected
+    if (_selectedPaymentMethodId == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Seleziona un metodo di pagamento')),
+        );
+      }
+      return;
+    }
+
     final formNotifier = ref.read(expenseFormProvider.notifier);
     final listNotifier = ref.read(expenseListProvider.notifier);
 
@@ -98,6 +113,7 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
       amount: amount,
       date: _selectedDate,
       categoryId: _selectedCategoryId!,
+      paymentMethodId: _selectedPaymentMethodId!,
       merchant: _merchantController.text.trim().isNotEmpty
           ? _merchantController.text.trim()
           : null,
@@ -301,6 +317,24 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
                   });
                 },
                 enabled: !formState.isSubmitting,
+              ),
+              const SizedBox(height: 16),
+
+              // Payment method selector
+              Consumer(
+                builder: (context, ref, child) {
+                  final userId = ref.watch(currentUserIdProvider);
+                  return PaymentMethodSelector(
+                    userId: userId,
+                    selectedId: _selectedPaymentMethodId,
+                    onChanged: (paymentMethodId) {
+                      setState(() {
+                        _selectedPaymentMethodId = paymentMethodId;
+                      });
+                    },
+                    enabled: !formState.isSubmitting,
+                  );
+                },
               ),
               const SizedBox(height: 16),
 

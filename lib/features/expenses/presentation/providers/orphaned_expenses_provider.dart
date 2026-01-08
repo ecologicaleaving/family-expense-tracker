@@ -112,6 +112,8 @@ class OrphanedExpensesNotifier extends StateNotifier<OrphanedExpensesState> {
       date: DateTime.parse(json['date'] as String),
       categoryId: json['category_id'] as String? ?? '', // Orphaned will be NULL
       categoryName: json['category_name'] as String?,
+      paymentMethodId: json['payment_method_id'] as String,
+      paymentMethodName: json['payment_method_name'] as String?,
       isGroupExpense: json['is_group_expense'] as bool? ?? true,
       merchant: json['merchant'] as String?,
       notes: json['notes'] as String?,

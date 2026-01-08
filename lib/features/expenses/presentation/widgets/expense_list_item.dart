@@ -71,7 +71,7 @@ class ExpenseListItem extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
 
-                  // Date, expense type, and receipt indicator
+                  // Date, expense type, receipt, and payment method
                   Row(
                     children: [
                       Text(
@@ -93,6 +93,22 @@ class ExpenseListItem extends StatelessWidget {
                           Icons.receipt_long,
                           size: 14,
                           color: theme.colorScheme.primary,
+                        ),
+                      ],
+                      // Payment method indicator
+                      if (expense.paymentMethodName != null) ...[
+                        const SizedBox(width: 8),
+                        Icon(
+                          Icons.payment,
+                          size: 14,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          expense.paymentMethodName!,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
                         ),
                       ],
                     ],

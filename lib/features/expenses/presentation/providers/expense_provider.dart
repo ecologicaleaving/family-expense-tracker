@@ -249,6 +249,7 @@ class ExpenseFormNotifier extends StateNotifier<ExpenseFormState> {
     required double amount,
     required DateTime date,
     required String categoryId,
+    String? paymentMethodId, // Defaults to "Contanti" if null
     String? merchant,
     String? notes,
     Uint8List? receiptImage,
@@ -260,6 +261,7 @@ class ExpenseFormNotifier extends StateNotifier<ExpenseFormState> {
       amount: amount,
       date: date,
       categoryId: categoryId,
+      paymentMethodId: paymentMethodId,
       merchant: merchant,
       notes: notes,
       receiptImage: receiptImage,
@@ -294,6 +296,7 @@ class ExpenseFormNotifier extends StateNotifier<ExpenseFormState> {
     double? amount,
     DateTime? date,
     String? categoryId,
+    String? paymentMethodId,
     String? merchant,
     String? notes,
   }) async {
@@ -304,6 +307,7 @@ class ExpenseFormNotifier extends StateNotifier<ExpenseFormState> {
       amount: amount,
       date: date,
       categoryId: categoryId,
+      paymentMethodId: paymentMethodId,
       merchant: merchant,
       notes: notes,
     );
