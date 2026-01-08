@@ -146,7 +146,7 @@ BEGIN
     AND group_id = v_user_group_id
     AND year = v_personal_budget.year
     AND month = v_personal_budget.month
-    AND created_by = v_personal_budget.user_id
+    AND user_id = v_personal_budget.user_id  -- Must match user_id for personal budgets
     AND is_group_budget = false;  -- Personal budget
 
     IF v_existing_budget_id IS NULL THEN
@@ -160,6 +160,7 @@ BEGIN
             created_by,
             is_group_budget,
             budget_type,
+            user_id,  -- Required for personal budgets
             created_at,
             updated_at
         ) VALUES (
@@ -171,6 +172,7 @@ BEGIN
             v_personal_budget.user_id,
             false,  -- Personal budget, not group
             'FIXED',
+            v_personal_budget.user_id,  -- Set user_id for personal budget
             v_personal_budget.created_at,
             NOW()
         );
