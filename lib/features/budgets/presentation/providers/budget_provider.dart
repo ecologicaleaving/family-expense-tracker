@@ -4,8 +4,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/utils/budget_calculator.dart';
 import '../../../../core/utils/timezone_handler.dart';
 import '../../domain/entities/budget_stats_entity.dart';
+import '../../domain/entities/computed_budget_totals_entity.dart';
 import '../../domain/entities/group_budget_entity.dart';
 import '../../domain/entities/personal_budget_entity.dart';
+import '../../domain/entities/virtual_group_expenses_category_entity.dart';
 import '../../domain/repositories/budget_repository.dart';
 import '../../../expenses/domain/entities/expense_entity.dart';
 import 'budget_repository_provider.dart';
@@ -13,8 +15,8 @@ import 'budget_repository_provider.dart';
 /// State for budget management
 class BudgetState {
   const BudgetState({
-    this.groupBudget,
-    this.personalBudget,
+    required this.computedTotals,
+    this.virtualGroupCategory,
     required this.groupStats,
     required this.personalStats,
     this.isLoading = false,
@@ -22,26 +24,39 @@ class BudgetState {
     this.pendingSyncExpenseIds = const [],
   });
 
-  final GroupBudgetEntity? groupBudget;
-  final PersonalBudgetEntity? personalBudget;
+  /// Computed budget totals (replaces manual groupBudget and personalBudget)
+  final ComputedBudgetTotals computedTotals;
+
+  /// Virtual "Spese di Gruppo" category (only for personal budget view)
+  final VirtualGroupExpensesCategory? virtualGroupCategory;
+
   final BudgetStatsEntity groupStats;
   final BudgetStatsEntity personalStats;
   final bool isLoading;
   final String? errorMessage;
   final List<String> pendingSyncExpenseIds;
 
+  /// @deprecated Use computedTotals.totalGroupBudget instead
+  @Deprecated('Use computedTotals.totalGroupBudget')
+  int get groupBudgetAmount => computedTotals.totalGroupBudget;
+
+  /// @deprecated Use computedTotals.totalPersonalBudget instead
+  @Deprecated('Use computedTotals.totalPersonalBudget')
+  int get personalBudgetAmount => computedTotals.totalPersonalBudget;
+
   BudgetState copyWith({
-    GroupBudgetEntity? groupBudget,
-    PersonalBudgetEntity? personalBudget,
+    ComputedBudgetTotals? computedTotals,
+    VirtualGroupExpensesCategory? virtualGroupCategory,
     BudgetStatsEntity? groupStats,
     BudgetStatsEntity? personalStats,
     bool? isLoading,
     String? errorMessage,
     List<String>? pendingSyncExpenseIds,
+    bool clearVirtualGroupCategory = false,
   }) {
     return BudgetState(
-      groupBudget: groupBudget ?? this.groupBudget,
-      personalBudget: personalBudget ?? this.personalBudget,
+      computedTotals: computedTotals ?? this.computedTotals,
+      virtualGroupCategory: clearVirtualGroupCategory ? null : (virtualGroupCategory ?? this.virtualGroupCategory),
       groupStats: groupStats ?? this.groupStats,
       personalStats: personalStats ?? this.personalStats,
       isLoading: isLoading ?? this.isLoading,
@@ -50,8 +65,18 @@ class BudgetState {
     );
   }
 
-  factory BudgetState.initial() {
+  factory BudgetState.initial({
+    required String groupId,
+    required String userId,
+  }) {
+    final now = DateTime.now();
     return BudgetState(
+      computedTotals: ComputedBudgetTotals.empty(
+        groupId: groupId,
+        userId: userId,
+        month: now.month,
+        year: now.year,
+      ),
       groupStats: BudgetStatsEntity(
         spentAmount: 0,
         isOverBudget: false,
@@ -75,7 +100,7 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
     this._supabaseClient,
     this._groupId,
     this._userId,
-  ) : super(BudgetState.initial()) {
+  ) : super(BudgetState.initial(groupId: _groupId, userId: _userId)) {
     _init();
   }
 
@@ -101,18 +126,20 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
       final month = now.month;
       final year = now.year;
 
-      // Load group budget
-      final groupBudgetResult = await _repository.getGroupBudget(
+      // Load computed budget totals (replaces getGroupBudget/getPersonalBudget)
+      final computedTotalsResult = await _repository.getComputedBudgetTotals(
         groupId: _groupId,
-        month: month,
+        userId: _userId,
         year: year,
+        month: month,
       );
 
-      // Load personal budget
-      final personalBudgetResult = await _repository.getPersonalBudget(
+      // Calculate virtual group expenses category for personal budget view
+      final virtualCategoryResult = await _repository.calculateVirtualGroupCategory(
+        groupId: _groupId,
         userId: _userId,
-        month: month,
         year: year,
+        month: month,
       );
 
       // Load group budget stats
@@ -129,18 +156,16 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
         year: year,
       );
 
-      groupBudgetResult.fold(
+      // Process results
+      computedTotalsResult.fold(
         (failure) => state = state.copyWith(
           isLoading: false,
           errorMessage: failure.message,
         ),
-        (groupBudget) {
-          personalBudgetResult.fold(
-            (failure) => state = state.copyWith(
-              isLoading: false,
-              errorMessage: failure.message,
-            ),
-            (personalBudget) {
+        (computedTotals) {
+          virtualCategoryResult.fold(
+            (failure) {
+              // Virtual category is optional, continue with null
               groupStatsResult.fold(
                 (failure) => state = state.copyWith(
                   isLoading: false,
@@ -154,8 +179,33 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
                     ),
                     (personalStats) {
                       state = state.copyWith(
-                        groupBudget: groupBudget,
-                        personalBudget: personalBudget,
+                        computedTotals: computedTotals,
+                        virtualGroupCategory: null, // Failed to load
+                        groupStats: groupStats,
+                        personalStats: personalStats,
+                        isLoading: false,
+                      );
+                    },
+                  );
+                },
+              );
+            },
+            (virtualCategory) {
+              groupStatsResult.fold(
+                (failure) => state = state.copyWith(
+                  isLoading: false,
+                  errorMessage: failure.message,
+                ),
+                (groupStats) {
+                  personalStatsResult.fold(
+                    (failure) => state = state.copyWith(
+                      isLoading: false,
+                      errorMessage: failure.message,
+                    ),
+                    (personalStats) {
+                      state = state.copyWith(
+                        computedTotals: computedTotals,
+                        virtualGroupCategory: virtualCategory,
                         groupStats: groupStats,
                         personalStats: personalStats,
                         isLoading: false,
