@@ -351,6 +351,25 @@ GRANT EXECUTE ON FUNCTION get_personal_budget_total(UUID, UUID, INTEGER, INTEGER
 -- 2. For each personal budget, create member contribution to "Altro" category
 -- 3. Mark original records as deprecated
 
+-- Drop old unique constraint if it still exists (from migration 026)
+-- Migration 037 should have dropped this, but use the actual constraint name
+DO $$
+BEGIN
+    -- Drop the old constraint by its actual name
+    ALTER TABLE category_budgets
+    DROP CONSTRAINT IF EXISTS category_budgets_category_id_group_id_year_month_key;
+
+    -- Ensure the new constraint exists (from migration 037)
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'category_budgets_unique_budget'
+    ) THEN
+        ALTER TABLE category_budgets
+        ADD CONSTRAINT category_budgets_unique_budget
+        UNIQUE(category_id, group_id, year, month, is_group_budget, user_id);
+    END IF;
+END $$;
+
 -- Function to migrate a single group budget to "Altro" category
 CREATE OR REPLACE FUNCTION migrate_group_budget_to_altro(
     p_group_budget_id UUID
