@@ -27,6 +27,7 @@ abstract class ExpenseRemoteDataSource {
     required double amount,
     required DateTime date,
     required String categoryId,
+    String? paymentMethodId, // Defaults to "Contanti" if null
     String? merchant,
     String? notes,
     bool isGroupExpense = true,
@@ -38,6 +39,7 @@ abstract class ExpenseRemoteDataSource {
     double? amount,
     DateTime? date,
     String? categoryId,
+    String? paymentMethodId,
     String? merchant,
     String? notes,
   });
@@ -175,6 +177,7 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
     required double amount,
     required DateTime date,
     required String categoryId,
+    String? paymentMethodId, // Defaults to "Contanti" if null
     String? merchant,
     String? notes,
     bool isGroupExpense = true,
@@ -195,6 +198,26 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
           .single();
       final displayName = profileResponse['display_name'] as String?;
 
+      // Get payment method ID if not provided (default to "Contanti")
+      String finalPaymentMethodId = paymentMethodId ?? '';
+      if (paymentMethodId == null) {
+        final defaultPaymentMethod = await supabaseClient
+            .from('payment_methods')
+            .select('id')
+            .eq('name', 'Contanti')
+            .eq('is_default', true)
+            .single();
+        finalPaymentMethodId = defaultPaymentMethod['id'] as String;
+      }
+
+      // Get payment method name for denormalization
+      final paymentMethodResponse = await supabaseClient
+          .from('payment_methods')
+          .select('name')
+          .eq('id', finalPaymentMethodId)
+          .single();
+      final paymentMethodName = paymentMethodResponse['name'] as String;
+
       // Normalize date to UTC date only (no time component)
       final normalizedDate = DateTime.utc(date.year, date.month, date.day);
 
@@ -212,6 +235,8 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
             'amount': amount,
             'date': normalizedDate.toIso8601String().split('T')[0],
             'category_id': categoryId,
+            'payment_method_id': finalPaymentMethodId,
+            'payment_method_name': paymentMethodName,
             'merchant': merchant,
             'notes': notes,
             'is_group_expense': isGroupExpense,
@@ -245,6 +270,7 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
     double? amount,
     DateTime? date,
     String? categoryId,
+    String? paymentMethodId,
     String? merchant,
     String? notes,
   }) async {
@@ -254,6 +280,17 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
       if (amount != null) updates['amount'] = amount;
       if (date != null) updates['date'] = date.toIso8601String().split('T')[0];
       if (categoryId != null) updates['category_id'] = categoryId;
+      if (paymentMethodId != null) {
+        // Get payment method name for denormalization
+        final paymentMethodResponse = await supabaseClient
+            .from('payment_methods')
+            .select('name')
+            .eq('id', paymentMethodId)
+            .single();
+        final paymentMethodName = paymentMethodResponse['name'] as String;
+        updates['payment_method_id'] = paymentMethodId;
+        updates['payment_method_name'] = paymentMethodName;
+      }
       if (merchant != null) updates['merchant'] = merchant;
       if (notes != null) updates['notes'] = notes;
 

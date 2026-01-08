@@ -148,6 +148,14 @@ class ExpenseDetailScreen extends ConsumerWidget {
                           label: 'Tipo',
                           value: expense.isGroupExpense ? 'Spesa di gruppo' : 'Spesa personale',
                         ),
+                        if (expense.paymentMethodName != null) ...[
+                          const Divider(),
+                          _DetailRow(
+                            icon: Icons.payment,
+                            label: 'Metodo di pagamento',
+                            value: expense.paymentMethodName!,
+                          ),
+                        ],
                         if (expense.createdAt != null) ...[
                           const Divider(),
                           _DetailRow(

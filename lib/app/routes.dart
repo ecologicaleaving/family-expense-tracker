@@ -28,6 +28,7 @@ import '../features/budgets/presentation/screens/budget_screen.dart';
 import '../features/categories/presentation/screens/category_management_screen.dart';
 import '../features/categories/presentation/screens/budget_management_screen.dart';
 import '../features/categories/presentation/screens/orphaned_expenses_screen.dart';
+import '../features/payment_methods/presentation/screens/payment_method_management_screen.dart';
 import '../features/upload/presentation/screens/upload_file_screen.dart';
 
 /// Route paths
@@ -62,6 +63,9 @@ class AppRoutes {
 
   // Category routes
   static const categoryManagement = '/category-management';
+
+  // Payment method routes
+  static const paymentMethodManagement = '/payment-method-management';
 
   // Orphaned expenses
   static const orphanedExpenses = '/orphaned-expenses';
@@ -224,6 +228,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.categoryManagement,
         name: 'categoryManagement',
         builder: (context, state) => const CategoryManagementScreen(),
+      ),
+
+      // Payment method routes
+      GoRoute(
+        path: AppRoutes.paymentMethodManagement,
+        name: 'paymentMethodManagement',
+        builder: (context, state) => const PaymentMethodManagementScreen(),
       ),
 
       // Orphaned expenses route

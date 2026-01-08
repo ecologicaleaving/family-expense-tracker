@@ -65,6 +65,7 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
     required double amount,
     required DateTime date,
     required String categoryId,
+    String? paymentMethodId, // Defaults to "Contanti" if null
     String? merchant,
     String? notes,
     Uint8List? receiptImage,
@@ -76,6 +77,7 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
         amount: amount,
         date: date,
         categoryId: categoryId,
+        paymentMethodId: paymentMethodId,
         merchant: merchant,
         notes: notes,
         isGroupExpense: isGroupExpense,
@@ -108,6 +110,7 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
     double? amount,
     DateTime? date,
     String? categoryId,
+    String? paymentMethodId,
     String? merchant,
     String? notes,
   }) async {
@@ -117,6 +120,7 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
         amount: amount,
         date: date,
         categoryId: categoryId,
+        paymentMethodId: paymentMethodId,
         merchant: merchant,
         notes: notes,
       );

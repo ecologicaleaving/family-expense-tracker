@@ -32,10 +32,12 @@ abstract class ExpenseRepository {
   /// Create a new expense.
   ///
   /// Returns the created expense with its generated ID.
+  /// If paymentMethodId is null, defaults to "Contanti" (Cash).
   Future<Either<Failure, ExpenseEntity>> createExpense({
     required double amount,
     required DateTime date,
     required String categoryId,
+    String? paymentMethodId, // Defaults to "Contanti" if null
     String? merchant,
     String? notes,
     Uint8List? receiptImage,
@@ -48,6 +50,7 @@ abstract class ExpenseRepository {
     double? amount,
     DateTime? date,
     String? categoryId,
+    String? paymentMethodId,
     String? merchant,
     String? notes,
   });

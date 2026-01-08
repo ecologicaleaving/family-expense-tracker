@@ -10,10 +10,12 @@ import '../../../../shared/widgets/error_display.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
 import '../../../../shared/widgets/navigation_guard.dart';
 import '../../../../shared/widgets/primary_button.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../dashboard/presentation/providers/dashboard_provider.dart';
 import '../../domain/entities/expense_entity.dart';
 import '../providers/expense_provider.dart';
 import '../widgets/category_selector.dart';
+import '../widgets/payment_method_selector.dart';
 
 /// Screen for editing an existing expense.
 /// Loads the expense by ID and displays an edit form.
@@ -96,6 +98,7 @@ class _EditExpenseFormState extends ConsumerState<_EditExpenseForm>
   final _notesController = TextEditingController();
   late DateTime _selectedDate;
   String? _selectedCategoryId;
+  String? _selectedPaymentMethodId;
   late bool _isGroupExpense;
 
   // Track initial values for unsaved changes detection
@@ -104,6 +107,7 @@ class _EditExpenseFormState extends ConsumerState<_EditExpenseForm>
   late String _initialNotes;
   late DateTime _initialDate;
   String? _initialCategoryId;
+  String? _initialPaymentMethodId;
   late bool _initialIsGroupExpense;
 
   @override
@@ -120,6 +124,7 @@ class _EditExpenseFormState extends ConsumerState<_EditExpenseForm>
     _notesController.text = widget.expense.notes ?? '';
     _selectedDate = widget.expense.date;
     _selectedCategoryId = widget.expense.categoryId;
+    _selectedPaymentMethodId = widget.expense.paymentMethodId;
     _isGroupExpense = widget.expense.isGroupExpense;
 
     // Store initial values for change detection
@@ -128,6 +133,7 @@ class _EditExpenseFormState extends ConsumerState<_EditExpenseForm>
     _initialNotes = _notesController.text;
     _initialDate = _selectedDate;
     _initialCategoryId = _selectedCategoryId;
+    _initialPaymentMethodId = _selectedPaymentMethodId;
     _initialIsGroupExpense = _isGroupExpense;
   }
 
@@ -146,6 +152,7 @@ class _EditExpenseFormState extends ConsumerState<_EditExpenseForm>
         _notesController.text != _initialNotes ||
         _selectedDate != _initialDate ||
         _selectedCategoryId != _initialCategoryId ||
+        _selectedPaymentMethodId != _initialPaymentMethodId ||
         _isGroupExpense != _initialIsGroupExpense;
   }
 
@@ -166,6 +173,7 @@ class _EditExpenseFormState extends ConsumerState<_EditExpenseForm>
       amount: amount,
       date: _selectedDate,
       categoryId: _selectedCategoryId,
+      paymentMethodId: _selectedPaymentMethodId,
       merchant: _merchantController.text.trim().isNotEmpty
           ? _merchantController.text.trim()
           : null,
@@ -228,6 +236,7 @@ class _EditExpenseFormState extends ConsumerState<_EditExpenseForm>
         _initialNotes = _notesController.text;
         _initialDate = _selectedDate;
         _initialCategoryId = _selectedCategoryId;
+        _initialPaymentMethodId = _selectedPaymentMethodId;
         _initialIsGroupExpense = _isGroupExpense;
       });
 
@@ -331,6 +340,19 @@ class _EditExpenseFormState extends ConsumerState<_EditExpenseForm>
                   onCategorySelected: (categoryId) {
                     setState(() {
                       _selectedCategoryId = categoryId;
+                    });
+                  },
+                  enabled: !formState.isSubmitting,
+                ),
+                const SizedBox(height: 16),
+
+                // Payment method selector
+                PaymentMethodSelector(
+                  userId: ref.watch(currentUserIdProvider),
+                  selectedId: _selectedPaymentMethodId,
+                  onChanged: (paymentMethodId) {
+                    setState(() {
+                      _selectedPaymentMethodId = paymentMethodId;
                     });
                   },
                   enabled: !formState.isSubmitting,
