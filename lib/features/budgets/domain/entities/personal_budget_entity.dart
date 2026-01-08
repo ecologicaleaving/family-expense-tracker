@@ -2,7 +2,22 @@ import 'package:equatable/equatable.dart';
 
 /// Personal budget entity representing a monthly budget for an individual user.
 ///
+/// **DEPRECATED**: This entity is deprecated in favor of the category-only budget system.
+/// Personal budget totals are now calculated as SUM of user's category contributions.
+/// Use [ComputedBudgetTotals] for new implementations.
+///
+/// This entity is kept for:
+/// - Historical data access
+/// - Backward compatibility during migration
+/// - Reading deprecated budget records
+///
+/// Do not use this for new budget creation. Use category budgets with member contributions instead.
+///
 /// Tracks user's total spending including both personal expenses and their group expenses.
+@Deprecated(
+  'Use category budgets with member contributions and ComputedBudgetTotals instead. '
+  'Personal budget is now calculated as SUM of user contributions.',
+)
 class PersonalBudgetEntity extends Equatable {
   const PersonalBudgetEntity({
     required this.id,

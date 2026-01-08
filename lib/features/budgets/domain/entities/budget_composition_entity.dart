@@ -83,18 +83,24 @@ class BudgetStats extends Equatable {
 /// Complete budget composition for a group in a specific month
 ///
 /// Aggregates all budget information:
-/// - Group budget (total monthly budget)
+/// - Group budget total (calculated from category budgets)
 /// - Category budgets with member contributions
 /// - Aggregate spending statistics
 /// - Validation issues
 ///
 /// This is the main entity used by the unified budget system.
 class BudgetComposition extends Equatable {
-  /// The group budget (total monthly budget for the family)
+  /// The calculated group budget total in cents
   ///
-  /// This is the top-level budget that constrains all category allocations.
-  /// Can be null if no group budget is set for this month.
-  final GroupBudgetEntity? groupBudget;
+  /// Computed as SUM of all category budget amounts.
+  /// This replaces the manual GroupBudgetEntity with a calculated value.
+  final int calculatedGroupBudget;
+
+  /// Whether a manual group budget exists (deprecated, for transition period only)
+  ///
+  /// Used during migration to show both manual and calculated budgets.
+  /// Will be removed once migration is complete.
+  final bool hasManualGroupBudget;
 
   /// All category budgets with their member contributions
   ///
@@ -126,7 +132,8 @@ class BudgetComposition extends Equatable {
   final String groupId;
 
   const BudgetComposition({
-    this.groupBudget,
+    required this.calculatedGroupBudget,
+    this.hasManualGroupBudget = false,
     required this.categoryBudgets,
     required this.stats,
     required this.issues,
@@ -142,7 +149,8 @@ class BudgetComposition extends Equatable {
     required int year,
   }) {
     return BudgetComposition(
-      groupBudget: null,
+      calculatedGroupBudget: 0,
+      hasManualGroupBudget: false,
       categoryBudgets: const [],
       stats: BudgetStats.empty(),
       issues: const [],
@@ -153,10 +161,10 @@ class BudgetComposition extends Equatable {
   }
 
   /// Whether the group budget is set
-  bool get hasGroupBudget => groupBudget != null && groupBudget!.amount > 0;
+  bool get hasGroupBudget => calculatedGroupBudget > 0;
 
   /// Group budget amount in cents (0 if not set)
-  int get groupBudgetAmount => groupBudget?.amount ?? 0;
+  int get groupBudgetAmount => calculatedGroupBudget;
 
   /// Whether any category budgets are set
   bool get hasCategoryBudgets => categoryBudgets.isNotEmpty;
@@ -225,7 +233,8 @@ class BudgetComposition extends Equatable {
 
   /// Creates a copy with updated fields
   BudgetComposition copyWith({
-    GroupBudgetEntity? groupBudget,
+    int? calculatedGroupBudget,
+    bool? hasManualGroupBudget,
     List<CategoryBudgetWithMembers>? categoryBudgets,
     BudgetStats? stats,
     List<BudgetValidationIssue>? issues,
@@ -234,7 +243,8 @@ class BudgetComposition extends Equatable {
     String? groupId,
   }) {
     return BudgetComposition(
-      groupBudget: groupBudget ?? this.groupBudget,
+      calculatedGroupBudget: calculatedGroupBudget ?? this.calculatedGroupBudget,
+      hasManualGroupBudget: hasManualGroupBudget ?? this.hasManualGroupBudget,
       categoryBudgets: categoryBudgets ?? this.categoryBudgets,
       stats: stats ?? this.stats,
       issues: issues ?? this.issues,
@@ -246,7 +256,8 @@ class BudgetComposition extends Equatable {
 
   @override
   List<Object?> get props => [
-        groupBudget,
+        calculatedGroupBudget,
+        hasManualGroupBudget,
         categoryBudgets,
         stats,
         issues,

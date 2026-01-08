@@ -2,7 +2,20 @@ import 'package:equatable/equatable.dart';
 
 /// Group budget entity representing a monthly budget for a family group.
 ///
-/// Set by group administrators to track group spending against a budget.
+/// **DEPRECATED**: This entity is deprecated in favor of the category-only budget system.
+/// Group budget totals are now calculated as SUM of category budgets.
+/// Use [ComputedBudgetTotals] for new implementations.
+///
+/// This entity is kept for:
+/// - Historical data access
+/// - Backward compatibility during migration
+/// - Reading deprecated budget records
+///
+/// Do not use this for new budget creation. Use category budgets instead.
+@Deprecated(
+  'Use category budgets and ComputedBudgetTotals instead. '
+  'Group budget is now calculated as SUM of category budgets.',
+)
 class GroupBudgetEntity extends Equatable {
   const GroupBudgetEntity({
     required this.id,
