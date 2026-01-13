@@ -14,6 +14,8 @@ import '../../../categories/presentation/providers/category_provider.dart';
 import '../../../categories/presentation/providers/category_repository_provider.dart';
 import '../../../categories/presentation/widgets/budget_prompt_dialog.dart';
 import '../../../dashboard/presentation/providers/dashboard_provider.dart';
+import '../../../dashboard/presentation/widgets/expenses_chart_widget.dart';
+import '../../../dashboard/presentation/widgets/personal_dashboard_view.dart';
 import '../../../groups/presentation/providers/group_provider.dart';
 import '../providers/expense_provider.dart';
 import '../widgets/category_selector.dart';
@@ -131,6 +133,11 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
 
       // Refresh dashboard to reflect the new expense
       ref.read(dashboardProvider.notifier).refresh();
+
+      // Invalidate personal dashboard providers to refresh totals
+      ref.invalidate(personalExpensesByCategoryProvider);
+      ref.invalidate(expensesByPeriodProvider);
+      ref.invalidate(recentPersonalExpensesProvider);
 
       if (mounted) {
         context.pop(); // Return to previous screen (MainNavigationScreen with Spese tab)

@@ -7,6 +7,9 @@ import '../../../../shared/widgets/error_display.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
 import '../../../../shared/widgets/receipt_image_viewer.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../dashboard/presentation/providers/dashboard_provider.dart';
+import '../../../dashboard/presentation/widgets/expenses_chart_widget.dart';
+import '../../../dashboard/presentation/widgets/personal_dashboard_view.dart';
 import '../../../groups/presentation/providers/group_provider.dart';
 import '../providers/expense_provider.dart';
 import '../providers/receipt_image_provider.dart';
@@ -254,6 +257,14 @@ class ExpenseDetailScreen extends ConsumerWidget {
 
       if (success && context.mounted) {
         ref.read(expenseListProvider.notifier).removeExpenseFromList(expenseId);
+
+        // Invalidate providers to refresh totals
+        ref.invalidate(recentGroupExpensesProvider);
+        ref.invalidate(recentPersonalExpensesProvider);
+        ref.invalidate(personalExpensesByCategoryProvider);
+        ref.invalidate(expensesByPeriodProvider);
+        ref.read(dashboardProvider.notifier).refresh();
+
         context.go('/expenses');
       }
     }
