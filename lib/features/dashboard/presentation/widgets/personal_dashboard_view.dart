@@ -155,11 +155,18 @@ final personalExpensesByCategoryProvider = FutureProvider.autoDispose
 });
 
 /// Widget che mostra la vista personale completa della dashboard in una singola card
-class PersonalDashboardView extends ConsumerWidget {
+class PersonalDashboardView extends ConsumerStatefulWidget {
   const PersonalDashboardView({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PersonalDashboardView> createState() => _PersonalDashboardViewState();
+}
+
+class _PersonalDashboardViewState extends ConsumerState<PersonalDashboardView> {
+  bool _categoriesExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
     final group = ref.watch(currentGroupProvider);
     final userId = ref.watch(currentUserIdProvider);
     final dashboardState = ref.watch(dashboardProvider);
@@ -202,11 +209,49 @@ class PersonalDashboardView extends ConsumerWidget {
             ),
             const SizedBox(height: 24),
 
-            // Categorie
-            _CategoriesSection(
-              userId: userId,
-              period: dashboardState.period,
-              offset: dashboardState.offset,
+            // Categorie (collapsabile)
+            Card(
+              margin: EdgeInsets.zero,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    InkWell(
+                      onTap: () {
+                        setState(() {
+                          _categoriesExpanded = !_categoriesExpanded;
+                        });
+                      },
+                      child: Row(
+                        children: [
+                          Icon(Icons.category, color: AppColors.terracotta),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Categorie',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const Spacer(),
+                          Icon(
+                            _categoriesExpanded
+                                ? Icons.expand_less
+                                : Icons.expand_more,
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (_categoriesExpanded) ...[
+                      const SizedBox(height: 12),
+                      _CategoriesSection(
+                        userId: userId,
+                        period: dashboardState.period,
+                        offset: dashboardState.offset,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
             ),
             const SizedBox(height: 24),
 
@@ -317,7 +362,7 @@ class _TotalsSection extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        CurrencyUtils.formatCents(totalExpenses),
+                        CurrencyUtils.formatCentsCompact(totalExpenses),
                         style: theme.textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: AppColors.terracotta,
@@ -325,7 +370,7 @@ class _TotalsSection extends ConsumerWidget {
                       ),
                       if (totalGroup > 0)
                         Text(
-                          '(${CurrencyUtils.formatCents(totalGroup)} gruppo)',
+                          '(${CurrencyUtils.formatCentsCompact(totalGroup)} gruppo)',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: Colors.grey.shade700,
                           ),
@@ -379,7 +424,7 @@ class _TotalsSection extends ConsumerWidget {
                     ],
                   ),
                   Text(
-                    CurrencyUtils.formatCents(totalIncome),
+                    CurrencyUtils.formatCentsCompact(totalIncome),
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: Colors.green,
@@ -429,26 +474,6 @@ class _CategoriesSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Icon(Icons.category, color: AppColors.terracotta),
-            const SizedBox(width: 8),
-            Text(
-              'Categorie',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const Spacer(),
-            TextButton(
-              onPressed: () {
-                context.push('/budget');
-              },
-              child: const Text('Gestisci'),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
         expensesAsync.when(
           data: (categoryTotals) {
             if (categoryTotals.isEmpty) {
@@ -480,7 +505,7 @@ class _CategoriesSection extends ConsumerWidget {
                     _showExpensesBottomSheet(context, ref, categoryId, categoryName, userId);
                   },
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -496,14 +521,14 @@ class _CategoriesSection extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Text(
-                              CurrencyUtils.formatCents(totalSpent),
+                              CurrencyUtils.formatCentsCompact(totalSpent),
                               style: theme.textTheme.bodyMedium?.copyWith(
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
                             if (groupSpent > 0)
                               Text(
-                                '(${CurrencyUtils.formatCents(groupSpent)} gruppo)',
+                                '(${CurrencyUtils.formatCentsCompact(groupSpent)} gruppo)',
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: Colors.grey.shade600,
                                   fontSize: 11,

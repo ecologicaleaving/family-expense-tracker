@@ -44,6 +44,7 @@ class BudgetScreen extends ConsumerStatefulWidget {
 class _BudgetScreenState extends ConsumerState<BudgetScreen> {
   int _selectedMonth = DateTime.now().month;
   int _selectedYear = DateTime.now().year;
+  bool _categoriesExpanded = false;
 
   @override
   void initState() {
@@ -188,24 +189,48 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
               // Expandable categories section
               Card(
                 color: AppColors.cream,
-                child: ExpansionTile(
-                  title: Text(
-                    'Categorie',
-                    style: GoogleFonts.playfairDisplay(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.ink,
+                child: Column(
+                  children: [
+                    InkWell(
+                      onTap: () {
+                        setState(() {
+                          _categoriesExpanded = !_categoriesExpanded;
+                        });
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Categorie',
+                                style: GoogleFonts.playfairDisplay(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.ink,
+                                ),
+                              ),
+                            ),
+                            Icon(
+                              _categoriesExpanded
+                                ? Icons.expand_less
+                                : Icons.expand_more,
+                              color: AppColors.ink,
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
-                  initiallyExpanded: false,
-                  children: composition.categoryBudgets.map((category) {
-                    return CategoryBudgetTile(
-                      key: ValueKey(category.categoryId),
-                      categoryBudget: category,
-                      params: params,
-                      initiallyExpanded: false,
-                    );
-                  }).toList(),
+                    if (_categoriesExpanded)
+                      ...composition.categoryBudgets.map((category) {
+                        return CategoryBudgetTile(
+                          key: ValueKey(category.categoryId),
+                          categoryBudget: category,
+                          params: params,
+                          initiallyExpanded: false,
+                        );
+                      }).toList(),
+                  ],
                 ),
               ),
             ],

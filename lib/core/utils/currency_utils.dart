@@ -1,3 +1,5 @@
+import 'package:intl/intl.dart';
+
 /// Utility class for handling currency conversions between cents and euros
 ///
 /// CRITICAL: All monetary values in the system MUST be stored as cents (INT)
@@ -52,19 +54,19 @@ class CurrencyUtils {
   ///
   /// Example:
   /// ```dart
-  /// formatCentsCompact(500000)  // Returns "€5000"
-  /// formatCentsCompact(12345)   // Returns "€123.45"
+  /// formatCentsCompact(500000)  // Returns "€5.000"
+  /// formatCentsCompact(12345)   // Returns "€123"
   /// formatCentsCompact(10000)   // Returns "€100"
   /// ```
   static String formatCentsCompact(int cents) {
     final euro = centsToEuro(cents);
-    if (cents % CENTS_PER_EURO == 0) {
-      // Whole euros, no decimals
-      return '€${euro.toStringAsFixed(0)}';
-    } else {
-      // Has cents, show decimals
-      return '€${euro.toStringAsFixed(2)}';
-    }
+    // Always round to nearest euro, no decimals
+    final formatter = NumberFormat.currency(
+      locale: 'it_IT',
+      symbol: '€',
+      decimalDigits: 0,
+    );
+    return formatter.format(euro.round());
   }
 
   /// Parses user input string to cents
