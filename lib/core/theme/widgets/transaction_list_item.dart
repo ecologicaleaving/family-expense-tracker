@@ -43,7 +43,7 @@ class TransactionListItem extends StatelessWidget {
               height: 48,
               decoration: BoxDecoration(
                 color: (isIncome ? AppColors.sageGreen : AppColors.terracotta)
-                    .withOpacity(0.15),
+                    .withValues(alpha: 0.15),
                 borderRadius: AppRadius.smallRadius,
               ),
               child: Center(

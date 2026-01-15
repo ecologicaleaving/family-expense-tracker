@@ -51,12 +51,12 @@ class AppColors {
   static const Color textTertiary = Color(0xFF8A9494);
 
   // Utility Colors with Opacity
-  static Color get sageGreenLight => sageGreen.withOpacity(0.15);
-  static Color get terracottaLight => terracotta.withOpacity(0.15);
-  static Color get amberLight => amberHoney.withOpacity(0.15);
+  static Color get sageGreenLight => sageGreen.withValues(alpha: 0.15);
+  static Color get terracottaLight => terracotta.withValues(alpha: 0.15);
+  static Color get amberLight => amberHoney.withValues(alpha: 0.15);
 
   // Shadow Colors
-  static Color get shadowLight => deepForest.withOpacity(0.08);
-  static Color get shadowMedium => deepForest.withOpacity(0.12);
-  static Color get shadowDark => deepForest.withOpacity(0.16);
+  static Color get shadowLight => deepForest.withValues(alpha: 0.08);
+  static Color get shadowMedium => deepForest.withValues(alpha: 0.12);
+  static Color get shadowDark => deepForest.withValues(alpha: 0.16);
 }

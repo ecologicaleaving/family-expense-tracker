@@ -40,7 +40,7 @@ class AppTheme {
       ),
 
       // Card Theme
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: AppColors.bgCard,
         elevation: 0,
         shape: AppRadius.largeShape,
@@ -170,7 +170,7 @@ class AppTheme {
       ),
 
       // Dialog Theme
-      dialogTheme: DialogTheme(
+      dialogTheme: DialogThemeData(
         backgroundColor: AppColors.bgCard,
         elevation: 8,
         shape: AppRadius.largeShape,
@@ -179,10 +179,10 @@ class AppTheme {
       ),
 
       // Bottom Sheet Theme
-      bottomSheetTheme: BottomSheetThemeData(
+      bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: AppColors.bgCard,
         elevation: 8,
-        shape: const RoundedRectangleBorder(
+        shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(
             top: Radius.circular(AppRadius.large),
           ),
@@ -190,7 +190,7 @@ class AppTheme {
       ),
 
       // Divider Theme
-      dividerTheme: DividerThemeData(
+      dividerTheme: const DividerThemeData(
         color: AppColors.warmSand,
         thickness: 1,
         space: AppSpacing.md,
@@ -279,7 +279,7 @@ class AppTheme {
       ),
 
       // Tab Bar Theme
-      tabBarTheme: TabBarTheme(
+      tabBarTheme: TabBarThemeData(
         labelColor: AppColors.sageGreen,
         unselectedLabelColor: AppColors.textTertiary,
         labelStyle: AppTextStyles.labelLarge,
