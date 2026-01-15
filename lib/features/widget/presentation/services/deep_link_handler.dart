@@ -48,8 +48,9 @@ class DeepLinkHandler {
       final path = '/${uri.host}${uri.path}';
       print('Navigating to: $path');
 
-      // Navigate using go_router
-      _router.go(path);
+      // Use push instead of go to preserve navigation stack
+      // This prevents issues when app opens from closed state
+      _router.push(path);
     }
   }
 }

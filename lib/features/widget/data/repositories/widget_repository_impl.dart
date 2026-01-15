@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 import 'package:flutter/widgets.dart';
 import 'package:intl/intl.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
 import '../../../dashboard/domain/entities/dashboard_stats_entity.dart';
@@ -28,39 +29,72 @@ class WidgetRepositoryImpl implements WidgetRepository {
   @override
   Future<Either<Failure, WidgetDataEntity>> getWidgetData() async {
     try {
-      // 1. Get current user and active group
+      // 1. Get current user
       final userResult = await authRepository.getCurrentUser();
       if (userResult.isLeft()) {
         return const Left(AuthFailure('User not authenticated'));
       }
 
       final user = userResult.getOrElse(() => throw Exception('Unexpected'));
+      final userId = user.id;
       final groupId = user.groupId;
 
       if (groupId == null) {
         return const Left(CacheFailure('User not in a group'));
       }
 
-      // 2. Fetch dashboard stats for current month
-      final stats = await dashboardRepository.getStats(
-        groupId: groupId,
-        period: DashboardPeriod.month,
-      );
+      // 2. Calculate all user expenses (personal + group) for current month
+      final supabase = Supabase.instance.client;
+      final now = DateTime.now();
+      final startOfMonth = DateTime(now.year, now.month, 1);
+      final endOfMonth = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
 
-      // 3. Get current theme
+      // Query all expenses created by user (both personal and group) for current month
+      final allExpensesResult = await supabase
+          .from('expenses')
+          .select('amount')
+          .eq('created_by', userId)
+          .gte('date', startOfMonth.toIso8601String().split('T')[0])
+          .lte('date', endOfMonth.toIso8601String().split('T')[0]) as List;
+
+      // Calculate total expenses (personal + group)
+      double totalExpenses = 0.0;
+      for (final expense in allExpensesResult) {
+        totalExpenses += (expense['amount'] as num).toDouble();
+      }
+
+      // 3. Get total income from income sources
+      final incomeSourcesResult = await supabase
+          .from('income_sources')
+          .select('amount')
+          .eq('user_id', userId) as List;
+
+      // Calculate total income (amount is stored in cents)
+      double totalIncome = 0.0;
+      for (final source in incomeSourcesResult) {
+        final amountCents = source['amount'] as int;
+        totalIncome += amountCents / 100.0; // Convert cents to euros
+      }
+
+      // If no income sources, use default value to avoid division by zero
+      if (totalIncome == 0) {
+        totalIncome = 1000.0; // Default fallback
+      }
+
+      // 4. Get current theme
       final brightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
       final isDarkMode = brightness == Brightness.dark;
 
-      // 4. Build widget data entity
+      // 5. Build widget data entity
       final widgetData = WidgetDataEntity(
-        spent: stats.totalAmount,
-        limit: 800.0, // TODO: Get from group budget settings
+        spent: totalExpenses, // All expenses (personal + group)
+        limit: totalIncome, // Total income
         month: DateFormat('MMMM yyyy', 'it').format(DateTime.now()),
         currency: '€',
         isDarkMode: isDarkMode,
         lastUpdated: DateTime.now(),
         groupId: groupId,
-        groupName: null, // TODO: Get from group entity
+        groupName: null,
       );
 
       return Right(widgetData);

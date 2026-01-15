@@ -22,12 +22,23 @@ final incomeSourcesProvider = StreamProvider.autoDispose<List<IncomeSourceEntity
   final authState = ref.watch(authProvider);
   final userId = authState.user?.id;
 
+  print('🔍 [incomeSourcesProvider] Loading income sources for userId: $userId');
+
   if (userId == null) {
+    print('❌ [incomeSourcesProvider] userId is null!');
     return Stream.value([]);
   }
 
   // Watch income sources from repository
-  return ref.watch(budgetRepositoryProvider).watchIncomeSources(userId);
+  final stream = ref.watch(budgetRepositoryProvider).watchIncomeSources(userId);
+
+  return stream.map((sources) {
+    print('✅ [incomeSourcesProvider] Loaded ${sources.length} income sources');
+    for (final source in sources) {
+      print('   - ${source.type}: ${source.amount} cents');
+    }
+    return sources;
+  });
 });
 
 /// Provider for total income calculation

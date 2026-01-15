@@ -55,6 +55,7 @@ class DashboardState {
     this.viewMode = DashboardViewMode.group,
     this.selectedMemberId,
     this.errorMessage,
+    this.offset = 0,
   });
 
   final DashboardStatus status;
@@ -63,6 +64,7 @@ class DashboardState {
   final DashboardViewMode viewMode;
   final String? selectedMemberId;
   final String? errorMessage;
+  final int offset;
 
   DashboardState copyWith({
     DashboardStatus? status,
@@ -72,6 +74,7 @@ class DashboardState {
     String? selectedMemberId,
     bool clearMemberFilter = false,
     String? errorMessage,
+    int? offset,
   }) {
     return DashboardState(
       status: status ?? this.status,
@@ -81,6 +84,7 @@ class DashboardState {
       selectedMemberId:
           clearMemberFilter ? null : (selectedMemberId ?? this.selectedMemberId),
       errorMessage: errorMessage,
+      offset: offset ?? this.offset,
     );
   }
 
@@ -89,6 +93,7 @@ class DashboardState {
   bool get hasData => stats != null && !stats!.isEmpty;
   bool get isPersonalView => viewMode == DashboardViewMode.personal;
   bool get isGroupView => viewMode == DashboardViewMode.group;
+  bool get canNavigateNext => offset < 0;
 }
 
 /// Dashboard notifier for managing dashboard state
@@ -120,6 +125,7 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
       groupId: _groupId!,
       period: state.period,
       userId: _getFilterUserId(),
+      offset: state.offset,
     );
 
     if (!mounted) return;
@@ -137,6 +143,7 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
         groupId: _groupId!,
         period: state.period,
         userId: _getFilterUserId(),
+        offset: state.offset,
       );
 
       if (!mounted) return;
@@ -173,7 +180,20 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
   /// Change time period
   Future<void> setPeriod(DashboardPeriod period) async {
     if (state.period == period) return;
-    state = state.copyWith(period: period);
+    state = state.copyWith(period: period, offset: 0);
+    await loadStats();
+  }
+
+  /// Navigate to previous period
+  Future<void> navigatePrevious() async {
+    state = state.copyWith(offset: state.offset - 1);
+    await loadStats();
+  }
+
+  /// Navigate to next period
+  Future<void> navigateNext() async {
+    if (state.offset >= 0) return;
+    state = state.copyWith(offset: state.offset + 1);
     await loadStats();
   }
 
@@ -183,6 +203,7 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
     state = state.copyWith(
       viewMode: mode,
       clearMemberFilter: mode == DashboardViewMode.personal,
+      offset: 0,
     );
     await loadStats();
   }

@@ -28,11 +28,35 @@ import '../../../../core/errors/failures.dart';
 /// - Swipe-to-delete with confirmation
 /// - Edit dialog for quick updates
 /// - Empty state guidance
-class IncomeManagementScreen extends ConsumerWidget {
+class IncomeManagementScreen extends ConsumerStatefulWidget {
   const IncomeManagementScreen({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<IncomeManagementScreen> createState() => _IncomeManagementScreenState();
+}
+
+class _IncomeManagementScreenState extends ConsumerState<IncomeManagementScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Force sync from Supabase to local DB on screen load
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authState = ref.read(authProvider);
+      final userId = authState.user?.id;
+      if (userId != null) {
+        print('🔄 [IncomeManagementScreen] Forcing sync from Supabase for userId: $userId');
+        ref.read(budgetRepositoryProvider).getIncomeSources(userId).then((result) {
+          result.fold(
+            (failure) => print('❌ [IncomeManagementScreen] Sync failed: $failure'),
+            (sources) => print('✅ [IncomeManagementScreen] Synced ${sources.length} income sources'),
+          );
+        });
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final incomeSourcesAsync = ref.watch(incomeSourcesProvider);
     final totalIncomeAsync = ref.watch(totalIncomeProvider);
     final theme = Theme.of(context);

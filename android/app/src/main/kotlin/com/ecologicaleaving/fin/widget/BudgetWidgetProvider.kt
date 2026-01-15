@@ -10,6 +10,7 @@ import android.net.Uri
 import android.widget.RemoteViews
 import com.ecologicaleaving.fin.MainActivity
 import com.ecologicaleaving.fin.R
+import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -30,7 +31,11 @@ class BudgetWidgetProvider : AppWidgetProvider() {
     }
 
     override fun onEnabled(context: Context) {
-        // Enter relevant functionality for when the first widget is created
+        // Notify Flutter that widget was added to home screen
+        println("BudgetWidgetProvider: Widget enabled, sending broadcast")
+        val intent = Intent("com.ecologicaleaving.fin.WIDGET_ENABLED")
+        intent.setPackage(context.packageName)
+        context.sendBroadcast(intent)
     }
 
     override fun onDisabled(context: Context) {
@@ -48,56 +53,83 @@ class BudgetWidgetProvider : AppWidgetProvider() {
             // Get widget data from shared preferences
             val prefs = context.getSharedPreferences(SHARED_PREFS, Context.MODE_PRIVATE)
 
-            // Check if widget data exists
-            val hasData = prefs.contains("flutter.spent")
+            // Check if widget data exists - now looking for JSON object
+            val widgetDataJson = prefs.getString("flutter.widget_data", null)
 
-            if (!hasData) {
+            if (widgetDataJson == null) {
                 // Show error state: no data configured
+                println("BudgetWidgetProvider: No widget data found in SharedPreferences")
                 showErrorState(context, appWidgetManager, appWidgetId, "Budget non configurato")
                 return
             }
 
-            val spent = prefs.getFloat("flutter.spent", 0f).toDouble()
-            val limit = prefs.getFloat("flutter.limit", 800f).toDouble()
-            val month = prefs.getString("flutter.month", "")
-            val percentage = prefs.getFloat("flutter.percentage", 0f).toDouble()
-            val currency = prefs.getString("flutter.currency", "€")
-            val isDarkMode = prefs.getBoolean("flutter.isDarkMode", false)
-            val lastUpdated = prefs.getLong("flutter.lastUpdated", 0L)
-            val groupName = prefs.getString("flutter.groupName", null)
+            try {
+                // Parse JSON widget data
+                val widgetData = JSONObject(widgetDataJson)
 
-            // Check if data is stale (>24 hours old)
-            val now = System.currentTimeMillis()
-            val dataAge = now - lastUpdated
-            val isStale = dataAge > (24 * 60 * 60 * 1000) // 24 hours
+                val spent = widgetData.optDouble("spent", 0.0)
+                val limit = widgetData.optDouble("limit", 800.0)
+                val month = widgetData.optString("month", "")
+                val currency = widgetData.optString("currency", "€")
+                val isDarkMode = widgetData.optBoolean("isDarkMode", false)
+                val groupName = widgetData.optString("groupName", null)
 
-            if (isStale && lastUpdated > 0) {
-                // Show error state: stale data
-                showErrorState(context, appWidgetManager, appWidgetId, "Dati non aggiornati")
+                // Parse lastUpdated from ISO8601 string to timestamp
+                val lastUpdatedString = widgetData.optString("lastUpdated", "")
+                val lastUpdated = if (lastUpdatedString.isNotEmpty()) {
+                    try {
+                        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS", Locale.US).parse(lastUpdatedString)?.time ?: 0L
+                    } catch (e: Exception) {
+                        println("BudgetWidgetProvider: Error parsing lastUpdated: ${e.message}")
+                        0L
+                    }
+                } else {
+                    0L
+                }
+
+                // Calculate percentage
+                val percentage = if (limit > 0) (spent / limit * 100) else 0.0
+
+                // Check if data is stale (>24 hours old)
+                val now = System.currentTimeMillis()
+                val dataAge = now - lastUpdated
+                val isStale = dataAge > (24 * 60 * 60 * 1000) // 24 hours
+
+                if (isStale && lastUpdated > 0) {
+                    // Show error state: stale data
+                    println("BudgetWidgetProvider: Data is stale (${dataAge / 1000}s old)")
+                    showErrorState(context, appWidgetManager, appWidgetId, "Dati non aggiornati")
+                    return
+                }
+
+                println("BudgetWidgetProvider: Widget data loaded - spent: $spent, limit: $limit, month: $month")
+
+                // Use unified responsive layout
+                val views = RemoteViews(context.packageName, R.layout.budget_widget)
+
+                // Update widget content
+                updateWidgetContent(
+                    context,
+                    views,
+                    spent,
+                    limit,
+                    month,
+                    percentage,
+                    currency,
+                    lastUpdated,
+                    groupName
+                )
+
+                // Set up click handlers
+                setupClickHandlers(context, views)
+
+                // Instruct the widget manager to update the widget
+                appWidgetManager.updateAppWidget(appWidgetId, views)
+            } catch (e: Exception) {
+                println("BudgetWidgetProvider: Error parsing widget data: ${e.message}")
+                showErrorState(context, appWidgetManager, appWidgetId, "Errore lettura dati")
                 return
             }
-
-            // Determine widget size and select appropriate layout
-            val views = getRemoteViewsForSize(context, appWidgetManager, appWidgetId)
-
-            // Update widget content
-            updateWidgetContent(
-                context,
-                views,
-                spent,
-                limit,
-                month ?: "",
-                percentage,
-                currency ?: "€",
-                lastUpdated,
-                groupName
-            )
-
-            // Set up click handlers
-            setupClickHandlers(context, views)
-
-            // Instruct the widget manager to update the widget
-            appWidgetManager.updateAppWidget(appWidgetId, views)
         }
 
         private fun showErrorState(
@@ -106,18 +138,13 @@ class BudgetWidgetProvider : AppWidgetProvider() {
             appWidgetId: Int,
             errorMessage: String
         ) {
-            val views = RemoteViews(context.packageName, R.layout.budget_widget_medium)
+            val views = RemoteViews(context.packageName, R.layout.budget_widget)
 
             // Hide normal content and show error message
-            try {
-                views.setTextViewText(R.id.month_text, "Errore")
-                views.setTextViewText(R.id.spent_text, errorMessage)
-                views.setTextViewText(R.id.percentage_text, "")
-                views.setProgressBar(R.id.budget_progress, 100, 0, false)
-            } catch (e: Exception) {
-                // Fallback for small layout
-                views.setTextViewText(R.id.budget_summary, errorMessage)
-            }
+            views.setTextViewText(R.id.month_text, "Errore")
+            views.setTextViewText(R.id.spent_text, errorMessage)
+            views.setTextViewText(R.id.percentage_text, "")
+            views.setProgressBar(R.id.budget_progress, 100, 0, false)
 
             // Add tap to open app
             val openAppIntent = Intent(context, MainActivity::class.java).apply {
@@ -134,28 +161,6 @@ class BudgetWidgetProvider : AppWidgetProvider() {
             appWidgetManager.updateAppWidget(appWidgetId, views)
         }
 
-        private fun getRemoteViewsForSize(
-            context: Context,
-            appWidgetManager: AppWidgetManager,
-            appWidgetId: Int
-        ): RemoteViews {
-            // Get widget size
-            val options = appWidgetManager.getAppWidgetOptions(appWidgetId)
-            val width = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH)
-            val height = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT)
-
-            // Determine layout based on size
-            // Small: 2x2 (< 180dp width)
-            // Medium: 4x2 (180-360dp width, < 180dp height)
-            // Large: 4x4 (> 180dp height)
-            val layoutId = when {
-                height >= 180 -> R.layout.budget_widget_large
-                width >= 180 -> R.layout.budget_widget_medium
-                else -> R.layout.budget_widget_small
-            }
-
-            return RemoteViews(context.packageName, layoutId)
-        }
 
         private fun updateWidgetContent(
             context: Context,
@@ -176,43 +181,18 @@ class BudgetWidgetProvider : AppWidgetProvider() {
             // Update text views
             views.setTextViewText(R.id.month_text, month)
             views.setTextViewText(R.id.percentage_text, "$percentageInt%")
-
-            // Update based on layout (different layouts have different views)
-            try {
-                // Try to update full amounts (medium/large layouts)
-                views.setTextViewText(R.id.spent_text, spentFormatted)
-                views.setTextViewText(R.id.limit_text, limitFormatted)
-            } catch (e: Exception) {
-                // Small layout: use combined budget_summary
-                val budgetSummary = "$spentFormatted / $limitFormatted"
-                views.setTextViewText(R.id.budget_summary, budgetSummary)
-            }
+            views.setTextViewText(R.id.spent_text, spentFormatted)
+            views.setTextViewText(R.id.limit_text, limitFormatted)
 
             // Update progress bar
             views.setProgressBar(R.id.budget_progress, 100, percentageInt, false)
 
-            // Update progress bar color based on percentage
-            val progressColor = when {
-                percentageInt >= 100 -> R.color.widget_progress_critical
-                percentageInt >= 80 -> R.color.widget_progress_warning
-                else -> R.color.widget_progress_normal
-            }
-            views.setInt(R.id.budget_progress, "setProgressTintList",
-                context.getColor(progressColor))
+            // Note: Cannot dynamically change progress bar color with RemoteViews
+            // The color is set statically in the layout XML
 
             // Update last updated text
             val lastUpdatedText = formatLastUpdated(lastUpdated)
             views.setTextViewText(R.id.last_updated_text, lastUpdatedText)
-
-            // Update group name (large layout only)
-            try {
-                if (!groupName.isNullOrEmpty()) {
-                    views.setTextViewText(R.id.group_name_text, groupName)
-                    views.setViewVisibility(R.id.group_name_text, android.view.View.VISIBLE)
-                }
-            } catch (e: Exception) {
-                // Group name view doesn't exist in this layout
-            }
         }
 
         private fun setupClickHandlers(context: Context, views: RemoteViews) {
@@ -227,13 +207,7 @@ class BudgetWidgetProvider : AppWidgetProvider() {
                 dashboardIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-
-            try {
-                views.setOnClickPendingIntent(R.id.budget_display_container, dashboardPendingIntent)
-            } catch (e: Exception) {
-                // Small widget doesn't have budget_display_container
-                views.setOnClickPendingIntent(R.id.widget_container, dashboardPendingIntent)
-            }
+            views.setOnClickPendingIntent(R.id.budget_display_container, dashboardPendingIntent)
 
             // Scan button click
             val scanIntent = Intent(Intent.ACTION_VIEW).apply {

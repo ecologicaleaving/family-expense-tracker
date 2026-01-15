@@ -12,6 +12,7 @@ abstract class DashboardRemoteDataSource {
     required String groupId,
     required DashboardPeriod period,
     String? userId,
+    int offset = 0,
   });
 }
 
@@ -23,29 +24,53 @@ class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
 
   final SupabaseClient _supabaseClient;
 
+  /// Calculate date range based on period and offset
+  (DateTime start, DateTime end) _calculateDateRange(
+    DashboardPeriod period,
+    int offset,
+  ) {
+    final now = DateTime.now();
+
+    switch (period) {
+      case DashboardPeriod.week:
+        // Find the start of the current week (Monday = 1)
+        final weekDay = now.weekday;
+        final currentWeekStart = now.subtract(Duration(days: weekDay - 1));
+        final targetWeekStart = currentWeekStart.add(Duration(days: offset * 7));
+        final targetWeekEnd = targetWeekStart.add(const Duration(days: 6));
+        return (
+          DateTime(targetWeekStart.year, targetWeekStart.month, targetWeekStart.day),
+          DateTime(targetWeekEnd.year, targetWeekEnd.month, targetWeekEnd.day, 23, 59, 59),
+        );
+
+      case DashboardPeriod.month:
+        // Calculate target month/year using DateTime constructor
+        // DateTime handles month overflow/underflow automatically
+        final targetDate = DateTime(now.year, now.month + offset, 1);
+        final startDate = DateTime(targetDate.year, targetDate.month, 1);
+        // Last day of month: day 0 of next month
+        final endDate = DateTime(targetDate.year, targetDate.month + 1, 0, 23, 59, 59);
+        return (startDate, endDate);
+
+      case DashboardPeriod.year:
+        final targetYear = now.year + offset;
+        return (
+          DateTime(targetYear, 1, 1),
+          DateTime(targetYear, 12, 31, 23, 59, 59),
+        );
+    }
+  }
+
   @override
   Future<DashboardStatsModel> getStats({
     required String groupId,
     required DashboardPeriod period,
     String? userId,
+    int offset = 0,
   }) async {
     try {
-      // Calculate date range
-      final now = DateTime.now();
-      final endDate = DateTime(now.year, now.month, now.day);
-      late DateTime startDate;
-
-      switch (period) {
-        case DashboardPeriod.week:
-          startDate = endDate.subtract(const Duration(days: 7));
-          break;
-        case DashboardPeriod.month:
-          startDate = DateTime(endDate.year, endDate.month - 1, endDate.day);
-          break;
-        case DashboardPeriod.year:
-          startDate = DateTime(endDate.year - 1, endDate.month, endDate.day);
-          break;
-      }
+      // Calculate date range based on period and offset
+      final (startDate, endDate) = _calculateDateRange(period, offset);
 
       // Build query - simple select without joins to avoid RLS issues
       var query = _supabaseClient

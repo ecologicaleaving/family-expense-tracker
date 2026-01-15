@@ -52,6 +52,10 @@ class DashboardScreen extends ConsumerWidget {
         onRefresh: () => ref.read(dashboardProvider.notifier).refresh(),
         onPeriodChanged: (period) =>
             ref.read(dashboardProvider.notifier).setPeriod(period),
+        onNavigatePrevious: () =>
+            ref.read(dashboardProvider.notifier).navigatePrevious(),
+        onNavigateNext: () =>
+            ref.read(dashboardProvider.notifier).navigateNext(),
         groupId: groupState.group?.id ?? '',
       ),
     );
@@ -65,6 +69,8 @@ class _DashboardContent extends ConsumerWidget {
     required this.isPersonalView,
     required this.onRefresh,
     required this.onPeriodChanged,
+    required this.onNavigatePrevious,
+    required this.onNavigateNext,
     this.onMemberFilterChanged,
     required this.groupId,
   });
@@ -74,6 +80,8 @@ class _DashboardContent extends ConsumerWidget {
   final bool isPersonalView;
   final VoidCallback onRefresh;
   final ValueChanged<DashboardPeriod> onPeriodChanged;
+  final VoidCallback onNavigatePrevious;
+  final VoidCallback onNavigateNext;
   final ValueChanged<String?>? onMemberFilterChanged;
   final String groupId;
 
@@ -111,6 +119,15 @@ class _DashboardContent extends ConsumerWidget {
                 selectedPeriod: dashboardState.period,
                 onPeriodChanged: onPeriodChanged,
               ),
+            ),
+            const SizedBox(height: 12),
+
+            // Period navigator
+            PeriodNavigator(
+              period: dashboardState.period,
+              offset: dashboardState.offset,
+              onPrevious: onNavigatePrevious,
+              onNext: onNavigateNext,
             ),
             const SizedBox(height: 16),
 

@@ -22,6 +22,7 @@ class BudgetOverviewCard extends StatelessWidget {
     super.key,
     required this.composition,
     required this.currentUserId,
+    required this.totalIncome,
     this.onTap,
     this.onPersonalTap,
     this.onGroupTap,
@@ -29,22 +30,15 @@ class BudgetOverviewCard extends StatelessWidget {
 
   final BudgetComposition composition;
   final String currentUserId;
+  final int totalIncome;
   final VoidCallback? onTap;
   final VoidCallback? onPersonalTap;
   final VoidCallback? onGroupTap;
 
   /// Calculate personal budget for current user
+  /// Returns total income (user's available money)
   int _calculatePersonalBudget() {
-    int total = 0;
-    for (final categoryBudget in composition.categoryBudgets) {
-      final userContribution = categoryBudget.memberContributions
-          .where((c) => c.userId == currentUserId)
-          .firstOrNull;
-      if (userContribution != null) {
-        total += userContribution.calculatedAmount;
-      }
-    }
-    return total;
+    return totalIncome;
   }
 
   @override

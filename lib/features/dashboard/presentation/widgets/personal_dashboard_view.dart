@@ -14,33 +14,91 @@ import '../../../budgets/presentation/providers/income_sources_provider.dart';
 import '../../../expenses/domain/entities/expense_entity.dart';
 import '../../../expenses/presentation/providers/expense_provider.dart';
 import '../../../groups/presentation/providers/group_provider.dart';
+import '../../domain/entities/dashboard_stats_entity.dart';
+import '../providers/dashboard_provider.dart';
 import 'expenses_chart_widget.dart';
+
+/// Parameters for personal expenses provider
+class PersonalExpensesParams {
+  final String userId;
+  final DashboardPeriod period;
+  final int offset;
+
+  const PersonalExpensesParams({
+    required this.userId,
+    required this.period,
+    required this.offset,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PersonalExpensesParams &&
+          runtimeType == other.runtimeType &&
+          userId == other.userId &&
+          period == other.period &&
+          offset == other.offset;
+
+  @override
+  int get hashCode => userId.hashCode ^ period.hashCode ^ offset.hashCode;
+}
+
+/// Calculate date range based on period and offset
+(DateTime start, DateTime end) _calculateDateRange(
+  DashboardPeriod period,
+  int offset,
+) {
+  final now = DateTime.now();
+
+  switch (period) {
+    case DashboardPeriod.week:
+      final weekDay = now.weekday;
+      final currentWeekStart = now.subtract(Duration(days: weekDay - 1));
+      final targetWeekStart = currentWeekStart.add(Duration(days: offset * 7));
+      final targetWeekEnd = targetWeekStart.add(const Duration(days: 6));
+      return (
+        DateTime(targetWeekStart.year, targetWeekStart.month, targetWeekStart.day),
+        DateTime(targetWeekEnd.year, targetWeekEnd.month, targetWeekEnd.day, 23, 59, 59),
+      );
+
+    case DashboardPeriod.month:
+      final targetDate = DateTime(now.year, now.month + offset, 1);
+      final startDate = DateTime(targetDate.year, targetDate.month, 1);
+      final endDate = DateTime(targetDate.year, targetDate.month + 1, 0, 23, 59, 59);
+      return (startDate, endDate);
+
+    case DashboardPeriod.year:
+      final targetYear = now.year + offset;
+      return (
+        DateTime(targetYear, 1, 1),
+        DateTime(targetYear, 12, 31, 23, 59, 59),
+      );
+  }
+}
 
 /// Provider per le spese personali e di gruppo raggruppate per categoria
 final personalExpensesByCategoryProvider = FutureProvider.autoDispose
-    .family<Map<String, dynamic>, String>((ref, userId) async {
+    .family<Map<String, dynamic>, PersonalExpensesParams>((ref, params) async {
   final supabase = Supabase.instance.client;
-  final now = DateTime.now();
-  final startOfMonth = DateTime(now.year, now.month, 1);
-  final endOfMonth = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
+  final (startDate, endDate) = _calculateDateRange(params.period, params.offset);
 
-  // Query spese personali del mese corrente
+  // Query spese personali
   final personalExpenses = await supabase
       .from('expenses')
       .select('amount, category_id, expense_categories(name)')
-      .eq('created_by', userId)
+      .eq('created_by', params.userId)
       .eq('is_group_expense', false)
-      .gte('date', startOfMonth.toIso8601String().split('T')[0])
-      .lte('date', endOfMonth.toIso8601String().split('T')[0]) as List;
+      .gte('date', startDate.toIso8601String().split('T')[0])
+      .lte('date', endDate.toIso8601String().split('T')[0]) as List;
 
-  // Query spese di gruppo del mese corrente (create dall'utente)
+  // Query spese di gruppo (create dall'utente)
   final groupExpenses = await supabase
       .from('expenses')
       .select('amount, category_id, expense_categories(name)')
-      .eq('created_by', userId)
+      .eq('created_by', params.userId)
       .eq('is_group_expense', true)
-      .gte('date', startOfMonth.toIso8601String().split('T')[0])
-      .lte('date', endOfMonth.toIso8601String().split('T')[0]) as List;
+      .gte('date', startDate.toIso8601String().split('T')[0])
+      .lte('date', endDate.toIso8601String().split('T')[0]) as List;
 
   // Raggruppa per categoria
   final Map<String, dynamic> categoryTotals = {};
@@ -104,6 +162,7 @@ class PersonalDashboardView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final group = ref.watch(currentGroupProvider);
     final userId = ref.watch(currentUserIdProvider);
+    final dashboardState = ref.watch(dashboardProvider);
 
     if (group == null) {
       return Card(
@@ -136,11 +195,19 @@ class PersonalDashboardView extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Totali (Entrate e Spese)
-            _TotalsSection(userId: userId),
+            _TotalsSection(
+              userId: userId,
+              period: dashboardState.period,
+              offset: dashboardState.offset,
+            ),
             const SizedBox(height: 24),
 
             // Categorie
-            _CategoriesSection(userId: userId),
+            _CategoriesSection(
+              userId: userId,
+              period: dashboardState.period,
+              offset: dashboardState.offset,
+            ),
             const SizedBox(height: 24),
 
             // Grafico a barre
@@ -151,7 +218,11 @@ class PersonalDashboardView extends ConsumerWidget {
             const SizedBox(height: 24),
 
             // Grafico a torta
-            _PersonalPieChart(userId: userId),
+            _PersonalPieChart(
+              userId: userId,
+              period: dashboardState.period,
+              offset: dashboardState.offset,
+            ),
           ],
         ),
       ),
@@ -161,15 +232,26 @@ class PersonalDashboardView extends ConsumerWidget {
 
 /// Sezione con totale entrate e totale spese
 class _TotalsSection extends ConsumerWidget {
-  const _TotalsSection({required this.userId});
+  const _TotalsSection({
+    required this.userId,
+    required this.period,
+    required this.offset,
+  });
 
   final String userId;
+  final DashboardPeriod period;
+  final int offset;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final incomeSourcesAsync = ref.watch(incomeSourcesProvider);
-    final expensesAsync = ref.watch(personalExpensesByCategoryProvider(userId));
+    final params = PersonalExpensesParams(
+      userId: userId,
+      period: period,
+      offset: offset,
+    );
+    final expensesAsync = ref.watch(personalExpensesByCategoryProvider(params));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -324,14 +406,25 @@ class _TotalsSection extends ConsumerWidget {
 
 /// Sezione categorie
 class _CategoriesSection extends ConsumerWidget {
-  const _CategoriesSection({required this.userId});
+  const _CategoriesSection({
+    required this.userId,
+    required this.period,
+    required this.offset,
+  });
 
   final String userId;
+  final DashboardPeriod period;
+  final int offset;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final expensesAsync = ref.watch(personalExpensesByCategoryProvider(userId));
+    final params = PersonalExpensesParams(
+      userId: userId,
+      period: period,
+      offset: offset,
+    );
+    final expensesAsync = ref.watch(personalExpensesByCategoryProvider(params));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -749,9 +842,15 @@ class _PeriodChip extends StatelessWidget {
 
 /// Grafico a torta
 class _PersonalPieChart extends ConsumerStatefulWidget {
-  const _PersonalPieChart({required this.userId});
+  const _PersonalPieChart({
+    required this.userId,
+    required this.period,
+    required this.offset,
+  });
 
   final String userId;
+  final DashboardPeriod period;
+  final int offset;
 
   @override
   ConsumerState<_PersonalPieChart> createState() => _PersonalPieChartState();
@@ -763,8 +862,13 @@ class _PersonalPieChartState extends ConsumerState<_PersonalPieChart> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final params = PersonalExpensesParams(
+      userId: widget.userId,
+      period: widget.period,
+      offset: widget.offset,
+    );
     final categoryExpensesAsync =
-        ref.watch(personalExpensesByCategoryProvider(widget.userId));
+        ref.watch(personalExpensesByCategoryProvider(params));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -803,54 +907,50 @@ class _PersonalPieChartState extends ConsumerState<_PersonalPieChart> {
                 return totalB.compareTo(totalA);
               });
 
-            return SizedBox(
-              height: 250,
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: PieChart(
-                      PieChartData(
-                        pieTouchData: PieTouchData(
-                          touchCallback: (event, response) {
-                            if (!event.isInterestedForInteractions ||
-                                response == null ||
-                                response.touchedSection == null) {
-                              setState(() => _touchedIndex = -1);
-                              return;
-                            }
+            return Column(
+              children: [
+                // Pie chart at full width
+                SizedBox(
+                  height: 200,
+                  child: PieChart(
+                    PieChartData(
+                      pieTouchData: PieTouchData(
+                        touchCallback: (event, response) {
+                          if (!event.isInterestedForInteractions ||
+                              response == null ||
+                              response.touchedSection == null) {
+                            setState(() => _touchedIndex = -1);
+                            return;
+                          }
 
-                            final index = response.touchedSection!.touchedSectionIndex;
+                          final index = response.touchedSection!.touchedSectionIndex;
 
-                            if (event is FlTapUpEvent) {
-                              final categoryEntry = categories[index];
-                              final categoryId = categoryEntry.key;
-                              final categoryName = categoryEntry.value['name'] as String;
+                          if (event is FlTapUpEvent) {
+                            final categoryEntry = categories[index];
+                            final categoryId = categoryEntry.key;
+                            final categoryName = categoryEntry.value['name'] as String;
 
-                              _showExpensesBottomSheet(
-                                context,
-                                categoryId,
-                                categoryName,
-                              );
-                            }
+                            _showExpensesBottomSheet(
+                              context,
+                              categoryId,
+                              categoryName,
+                            );
+                          }
 
-                            setState(() => _touchedIndex = index);
-                          },
-                        ),
-                        borderData: FlBorderData(show: false),
-                        sectionsSpace: 2,
-                        centerSpaceRadius: 40,
-                        sections: _buildSections(categories),
+                          setState(() => _touchedIndex = index);
+                        },
                       ),
+                      borderData: FlBorderData(show: false),
+                      sectionsSpace: 2,
+                      centerSpaceRadius: 40,
+                      sections: _buildSections(categories),
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    flex: 2,
-                    child: _buildLegend(categories, theme),
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 16),
+                // Horizontal scrollable legend
+                _buildHorizontalLegend(categories, theme),
+              ],
             );
           },
           loading: () => const SizedBox(
@@ -902,6 +1002,104 @@ class _PersonalPieChartState extends ConsumerState<_PersonalPieChart> {
         ),
       );
     }).toList();
+  }
+
+  Widget _buildHorizontalLegend(
+      List<MapEntry<String, dynamic>> categories, ThemeData theme) {
+    final colors = [
+      AppColors.terracotta,
+      const Color(0xFF8B7355),
+      const Color(0xFFD4A373),
+      const Color(0xFFA0826D),
+      const Color(0xFF6F4E37),
+      const Color(0xFFB08968),
+    ];
+
+    return SizedBox(
+      height: 85,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: categories.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 12),
+        itemBuilder: (context, index) {
+          final categoryData = categories[index];
+          final categoryName = categoryData.value['name'] as String;
+          final personal = categoryData.value['personal'] as int;
+          final group = categoryData.value['group'] as int;
+          final total = personal + group;
+          final color = colors[index % colors.length];
+
+          return Container(
+            constraints: const BoxConstraints(
+              minWidth: 100,
+              maxWidth: 140,
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: color.withOpacity(0.3),
+                width: 1.5,
+              ),
+              borderRadius: BorderRadius.circular(8),
+              color: color.withOpacity(0.1),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        categoryName,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  CurrencyUtils.formatCents(total),
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (group > 0)
+                  Text(
+                    '(${CurrencyUtils.formatCents(group)} gruppo)',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
   }
 
   Widget _buildLegend(

@@ -22,6 +22,7 @@ class DashboardRepositoryImpl implements DashboardRepository {
     required String groupId,
     required DashboardPeriod period,
     String? userId,
+    int offset = 0,
   }) async {
     _currentGroupId = groupId;
 
@@ -30,6 +31,7 @@ class DashboardRepositoryImpl implements DashboardRepository {
       groupId: groupId,
       period: period,
       userId: userId,
+      offset: offset,
     );
 
     // Cache the result
@@ -47,6 +49,7 @@ class DashboardRepositoryImpl implements DashboardRepository {
     required String groupId,
     required DashboardPeriod period,
     String? userId,
+    int offset = 0,
   }) async {
     return _localDataSource.getCachedStats(
       groupId: groupId,

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Large dimensions for large widget (>300dp width) -->
+    <dimen name="widget_padding">20dp</dimen>
+    <dimen name="widget_text_tiny">12sp</dimen>
+    <dimen name="widget_text_small">16sp</dimen>
+    <dimen name="widget_text_medium">20sp</dimen>
+    <dimen name="widget_text_large">28sp</dimen>
+    <dimen name="widget_progress_height">10dp</dimen>
+    <dimen name="widget_button_padding">10dp</dimen>
+    <dimen name="widget_button_spacing">10dp</dimen>
+    <dimen name="widget_button_margin_top">16dp</dimen>
+    <dimen name="widget_button_text">16sp</dimen>
+    <dimen name="widget_icon_size">24dp</dimen>
+</resources>

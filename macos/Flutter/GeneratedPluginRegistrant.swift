@@ -14,7 +14,7 @@ import flutter_secure_storage_macos
 import flutter_timezone
 import path_provider_foundation
 import shared_preferences_foundation
-import sqlcipher_flutter_libs
+import sqlite3_flutter_libs
 import url_launcher_macos
 
 func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {

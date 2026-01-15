@@ -12,6 +12,8 @@ import 'app/app.dart';
 import 'core/config/env.dart';
 import 'core/services/monthly_budget_reset_service.dart';
 import 'features/widget/presentation/providers/widget_provider.dart';
+import 'features/widget/presentation/services/background_refresh_service.dart';
+import 'features/widget/presentation/services/widget_update_service.dart';
 import 'shared/services/share_intent_service.dart';
 
 /// Demo mode flag - set via --dart-define=DEMO_MODE=true
@@ -80,6 +82,40 @@ Future<void> main() async {
     //     groupId: currentGroupId,
     //   );
     // }
+
+    // Widget initialization (only in non-demo mode)
+    try {
+      print('Main: Initializing widget functionality');
+
+      // Setup widget lifecycle listener
+      BackgroundRefreshService.setupWidgetListener(() {
+        print('Main: Widget enabled callback triggered, updating widget');
+        try {
+          final container = ProviderContainer(
+            overrides: [
+              sharedPreferencesProvider.overrideWithValue(sharedPreferences),
+            ],
+          );
+          container.read(widgetUpdateServiceProvider).triggerUpdate();
+          container.dispose();
+        } catch (e) {
+          print('Main: Error updating widget after enable: $e');
+        }
+      });
+
+      // Perform initial widget update (if widget already exists)
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(sharedPreferences),
+        ],
+      );
+      await container.read(widgetUpdateServiceProvider).triggerUpdate();
+      container.dispose();
+
+      print('Main: Widget initialization completed');
+    } catch (e) {
+      print('Main: Error initializing widget: $e');
+    }
   }
 
   runApp(
