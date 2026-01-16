@@ -105,7 +105,7 @@ class InviteCodeCard extends StatelessWidget {
 
   void _shareCode(BuildContext context) {
     // For now, just copy. In a full app, you'd use share_plus package
-    final message = 'Unisciti al mio gruppo famiglia su Spese di Casa! '
+    final message = 'Unisciti al mio gruppo famiglia su Fin! '
         'Usa il codice: ${invite.code}';
 
     Clipboard.setData(ClipboardData(text: message));

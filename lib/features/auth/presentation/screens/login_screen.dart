@@ -72,16 +72,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Logo/Title
-                  Icon(
-                    Icons.account_balance_wallet,
-                    size: 80,
-                    color: theme.colorScheme.primary,
+                  // Logo
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Image.asset(
+                      'assets/logo/icon_original.png',
+                      width: 120,
+                      height: 120,
+                      fit: BoxFit.contain,
+                    ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
                   Text(
-                    'Spese di Casa',
-                    style: theme.textTheme.headlineMedium?.copyWith(
+                    'Fin',
+                    style: theme.textTheme.headlineLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
                     textAlign: TextAlign.center,

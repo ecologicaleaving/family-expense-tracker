@@ -17,7 +17,7 @@ class NoGroupScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Spese di Casa'),
+        title: const Text('Fin'),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),

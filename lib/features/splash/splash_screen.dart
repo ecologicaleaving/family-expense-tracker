@@ -127,21 +127,22 @@ class _SplashScreenState extends State<SplashScreen>
                   child: Column(
                     children: [
                       Text(
-                        'Spese',
-                        style: GoogleFonts.playfairDisplay(
-                          fontSize: 42,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.ink,
-                          letterSpacing: 2,
+                        'Fin',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 48,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.deepForest,
+                          letterSpacing: 1,
                         ),
                       ),
+                      const SizedBox(height: 8),
                       Text(
-                        'FAMIGLIA',
+                        'Family Budget Manager',
                         style: GoogleFonts.dmSans(
                           fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.terracotta,
-                          letterSpacing: 6,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.sageGreen,
+                          letterSpacing: 2,
                         ),
                       ),
                     ],
@@ -181,45 +182,26 @@ class _SplashScreenState extends State<SplashScreen>
 
   Widget _buildAppIcon() {
     return Container(
-      width: 120,
-      height: 120,
+      width: 140,
+      height: 140,
       decoration: BoxDecoration(
-        color: AppColors.terracotta,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: AppColors.terracotta.withValues(alpha: 0.3),
+            color: AppColors.deepForest.withValues(alpha: 0.3),
             blurRadius: 30,
             offset: const Offset(0, 15),
           ),
         ],
       ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // Euro symbol
-          Text(
-            '€',
-            style: GoogleFonts.playfairDisplay(
-              fontSize: 64,
-              fontWeight: FontWeight.w600,
-              color: AppColors.cream,
-            ),
-          ),
-          // Decorative corner accent
-          Positioned(
-            top: 12,
-            right: 12,
-            child: Container(
-              width: 16,
-              height: 16,
-              decoration: BoxDecoration(
-                color: AppColors.gold.withValues(alpha: 0.8),
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
-          ),
-        ],
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: Image.asset(
+          'assets/logo/icon_original.png',
+          width: 140,
+          height: 140,
+          fit: BoxFit.cover,
+        ),
       ),
     );
   }
