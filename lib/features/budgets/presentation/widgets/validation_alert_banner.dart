@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../../../app/app_theme.dart';
 import '../../domain/entities/budget_validation_issue_entity.dart';
 
+import '../../../../app/app_theme.dart';
 /// Banner widget that displays budget validation issues
 ///
 /// Shows errors (red) and warnings (orange) in a prominent banner

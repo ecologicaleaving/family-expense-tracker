@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../../../app/app_theme.dart';
 import '../../../../core/utils/currency_utils.dart';
 import '../../domain/entities/category_budget_with_members_entity.dart';
 import '../providers/budget_composition_provider.dart';
 import 'editable_section.dart';
 
+import '../../../../app/app_theme.dart';
 /// Expandable tile for a category budget
 ///
 /// Header (collapsed):

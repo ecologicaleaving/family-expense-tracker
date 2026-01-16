@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../app/app_theme.dart';
-
 /// Distinctive splash screen with Italian Brutalism aesthetic.
 class SplashScreen extends StatefulWidget {
   final VoidCallback onComplete;

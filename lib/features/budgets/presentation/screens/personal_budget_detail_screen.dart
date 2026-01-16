@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../../../app/app_theme.dart';
 import '../../../../core/utils/currency_utils.dart';
 import '../../domain/entities/budget_composition_entity.dart';
 import '../providers/budget_composition_provider.dart';
 import '../widgets/category_budget_tile.dart';
 
+import '../../../../app/app_theme.dart';
 /// Personal budget detail screen showing user's personal allocations
 class PersonalBudgetDetailScreen extends ConsumerWidget {
   const PersonalBudgetDetailScreen({

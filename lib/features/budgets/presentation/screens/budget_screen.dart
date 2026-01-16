@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'package:go_router/go_router.dart';
 
-import '../../../../app/app_theme.dart';
 import '../../../../app/routes.dart';
 import '../../../../core/utils/currency_utils.dart';
 import '../../../../shared/widgets/error_display.dart';
@@ -20,7 +19,7 @@ import '../widgets/editable_section.dart';
 import '../widgets/validation_alert_banner.dart';
 import 'group_budget_detail_screen.dart';
 import 'personal_budget_detail_screen.dart';
-
+import '../../../../app/app_theme.dart';
 /// Unified budget management screen
 ///
 /// Replaces the previous 3 separate screens:

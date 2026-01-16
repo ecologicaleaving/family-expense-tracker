@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../app/app_theme.dart';
-
 /// Budget warning indicator for 80% threshold warning
 /// Updated with Italian Brutalism design: sharp edges, thicker borders, bold geometric styling
 class BudgetWarningIndicator extends StatelessWidget {

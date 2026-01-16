@@ -4,9 +4,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../../../app/app_theme.dart';
 import '../../../budgets/domain/entities/unified_budget_stats_entity.dart';
 
+import '../../../../app/app_theme.dart';
 /// Top spending categories displayed as horizontal bar chart
 /// Shows top 5 categories with geometric bars
 class TopSpendingBarChart extends StatelessWidget {

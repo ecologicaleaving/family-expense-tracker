@@ -4,9 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../app/app_theme.dart';
 import '../../../../core/utils/currency_utils.dart';
 
+import '../../../../app/app_theme.dart';
 enum ChartPeriod { week, month, year }
 
 /// Provider per le spese raggruppate per periodo

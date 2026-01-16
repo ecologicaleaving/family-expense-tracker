@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../../app/app_theme.dart';
 import '../../../../core/utils/budget_calculator.dart';
 
+import '../../../../app/app_theme.dart';
 /// Budget progress bar widget with percentage calculation and color coding
 /// Updated with Italian Brutalism design: thicker (12px), sharper (2px radius), segmented colors
 class BudgetProgressBar extends StatelessWidget {

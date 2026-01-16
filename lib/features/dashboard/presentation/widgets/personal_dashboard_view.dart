@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../../../app/app_theme.dart';
 import '../../../../app/routes.dart';
 import '../../../../core/utils/currency_utils.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
@@ -18,6 +17,7 @@ import '../../domain/entities/dashboard_stats_entity.dart';
 import '../providers/dashboard_provider.dart';
 import 'expenses_chart_widget.dart';
 
+import '../../../../app/app_theme.dart';
 /// Parameters for personal expenses provider
 class PersonalExpensesParams {
   final String userId;
@@ -163,8 +163,6 @@ class PersonalDashboardView extends ConsumerStatefulWidget {
 }
 
 class _PersonalDashboardViewState extends ConsumerState<PersonalDashboardView> {
-  bool _categoriesExpanded = false;
-
   @override
   Widget build(BuildContext context) {
     final group = ref.watch(currentGroupProvider);
@@ -209,49 +207,24 @@ class _PersonalDashboardViewState extends ConsumerState<PersonalDashboardView> {
             ),
             const SizedBox(height: 24),
 
-            // Categorie (collapsabile)
-            Card(
-              margin: EdgeInsets.zero,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    InkWell(
-                      onTap: () {
-                        setState(() {
-                          _categoriesExpanded = !_categoriesExpanded;
-                        });
-                      },
-                      child: Row(
-                        children: [
-                          Icon(Icons.category, color: AppColors.terracotta),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Categorie',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const Spacer(),
-                          Icon(
-                            _categoriesExpanded
-                                ? Icons.expand_less
-                                : Icons.expand_more,
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (_categoriesExpanded) ...[
-                      const SizedBox(height: 12),
-                      _CategoriesSection(
-                        userId: userId,
-                        period: dashboardState.period,
-                        offset: dashboardState.offset,
-                      ),
-                    ],
-                  ],
+            // Categorie (sempre aperto)
+            Row(
+              children: [
+                Icon(Icons.category, color: AppColors.terracotta),
+                const SizedBox(width: 8),
+                Text(
+                  'Categorie',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _CategoriesSection(
+              userId: userId,
+              period: dashboardState.period,
+              offset: dashboardState.offset,
             ),
             const SizedBox(height: 24),
 
@@ -493,7 +466,7 @@ class _CategoriesSection extends ConsumerWidget {
               });
 
             return Column(
-              children: categories.take(5).map((entry) {
+              children: categories.map((entry) {
                 final categoryName = entry.value['name'] as String;
                 final categoryId = entry.key;
                 final personalSpent = entry.value['personal'] as int;

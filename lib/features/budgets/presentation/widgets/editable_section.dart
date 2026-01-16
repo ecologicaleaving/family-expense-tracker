@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../../../app/app_theme.dart';
 import '../../../../core/utils/currency_utils.dart';
 
+import '../../../../app/app_theme.dart';
 /// Reusable widget for inline editing of budget amounts
 ///
 /// Supports two modes:

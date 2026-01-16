@@ -195,10 +195,10 @@ class BudgetDesignTokens {
   // Status colors - use new palette
   static const Color healthyBorder = NewColors.AppColors.sageGreen;
   static const Color warningBorder = NewColors.AppColors.amberHoney;
-  static const Color dangerBorder = NewColors.AppColors.terracotta;
+  static const Color dangerBorder = NewColors.AppColors.softCoral; // Use coral for danger
 
   // Badge colors
-  static const Color groupBadgeBg = NewColors.AppColors.terracotta;
+  static const Color groupBadgeBg = NewColors.AppColors.deepForest; // Dark green for group
   static const Color personalBadgeBg = NewColors.AppColors.sageGreen;
   static const Color badgeFg = NewColors.AppColors.cream;
 

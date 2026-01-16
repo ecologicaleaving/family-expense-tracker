@@ -4,7 +4,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/app_theme.dart';
-
 /// Geometric section divider with centered text and extending lines
 /// Used to separate sections in the budget dashboard
 class GeometricSectionDivider extends StatelessWidget {

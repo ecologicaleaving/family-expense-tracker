@@ -4,9 +4,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../../../app/app_theme.dart';
 import '../../../budgets/domain/entities/unified_budget_stats_entity.dart';
 
+import '../../../../app/app_theme.dart';
 /// Alert strip showing categories that are near limit or over budget
 /// Horizontal scrolling chips with thick left border
 class CategoryAlertStrip extends StatelessWidget {

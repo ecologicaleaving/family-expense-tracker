@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../../../app/app_theme.dart';
 import '../../../../core/utils/currency_utils.dart';
 import '../../domain/entities/budget_composition_entity.dart';
 
+import '../../../../app/app_theme.dart';
 /// Overview card showing budget totals and progress
 ///
 /// Displays:

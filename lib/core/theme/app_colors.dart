@@ -12,8 +12,8 @@ class AppColors {
   /// Primary text and important elements - stability, trust
   static const Color deepForest = Color(0xFF3D5A3C);
 
-  /// Expenses and warm accents - warmth, humanity
-  static const Color terracotta = Color(0xFFD4846A);
+  /// Expenses and primary accents - professional, calm
+  static const Color terracotta = Color(0xFFA8BFC4); // Misty Blue
 
   /// Secondary background - soft, warm
   static const Color warmSand = Color(0xFFF5EFE7);

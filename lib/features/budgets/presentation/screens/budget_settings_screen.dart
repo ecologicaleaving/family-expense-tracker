@@ -3,13 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../../../app/app_theme.dart';
 import '../../../../core/utils/currency_utils.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../groups/presentation/providers/group_provider.dart';
 import '../providers/budget_actions_provider.dart';
 import '../providers/budget_provider.dart';
 
+import '../../../../app/app_theme.dart';
 /// Minimal budget settings screen for setting total monthly budgets
 /// All visualization is in the unified budget dashboard
 class BudgetSettingsScreen extends ConsumerStatefulWidget {
