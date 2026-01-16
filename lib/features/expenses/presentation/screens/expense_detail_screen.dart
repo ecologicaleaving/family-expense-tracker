@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/enums/reimbursement_status.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../../shared/widgets/error_display.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
 import '../../../../shared/widgets/receipt_image_viewer.dart';
+import '../../../../shared/widgets/reimbursement_status_badge.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../dashboard/presentation/providers/dashboard_provider.dart';
 import '../../../dashboard/presentation/widgets/expenses_chart_widget.dart';
@@ -14,6 +16,7 @@ import '../../../groups/presentation/providers/group_provider.dart';
 import '../providers/expense_provider.dart';
 import '../providers/receipt_image_provider.dart';
 import '../widgets/budget_context_widget.dart';
+import '../widgets/delete_confirmation_dialog.dart';
 
 /// Screen showing full expense details with receipt image.
 class ExpenseDetailScreen extends ConsumerWidget {
@@ -96,7 +99,7 @@ class ExpenseDetailScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Amount card
+                // Amount card (T051)
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(24),
@@ -113,6 +116,12 @@ class ExpenseDetailScreen extends ConsumerWidget {
                         Text(
                           expense.categoryName ?? 'Categoria non specificata',
                           style: theme.textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 12),
+                        // Reimbursement status badge (T051)
+                        ReimbursementStatusBadge(
+                          status: expense.reimbursementStatus,
+                          mode: ReimbursementBadgeMode.full,
                         ),
                       ],
                     ),
@@ -167,6 +176,61 @@ class ExpenseDetailScreen extends ConsumerWidget {
                             value: DateFormatter.formatDateTime(expense.createdAt!),
                           ),
                         ],
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Reimbursement status change section (T051)
+                const SizedBox(height: 16),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.account_balance_wallet_outlined, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Stato rimborso',
+                              style: theme.textTheme.titleSmall,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: ReimbursementStatus.values.map((status) {
+                            final isSelected = expense.reimbursementStatus == status;
+                            final color = status.getColor(theme.colorScheme);
+
+                            return FilterChip(
+                              selected: isSelected,
+                              label: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(status.icon, size: 16),
+                                  const SizedBox(width: 4),
+                                  Text(status.label),
+                                ],
+                              ),
+                              selectedColor: color.withOpacity(0.2),
+                              checkmarkColor: color,
+                              onSelected: (selected) {
+                                if (selected && !isSelected) {
+                                  ref.read(expenseListProvider.notifier).updateReimbursementStatus(
+                                    context: context,
+                                    expenseId: expense.id,
+                                    newStatus: status,
+                                  );
+                                }
+                              },
+                            );
+                          }).toList(),
+                        ),
                       ],
                     ),
                   ),
@@ -227,29 +291,18 @@ class ExpenseDetailScreen extends ConsumerWidget {
   }
 
   Future<void> _handleDelete(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Elimina spesa'),
-        content: const Text(
-          'Sei sicuro di voler eliminare questa spesa? L\'azione non può essere annullata.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Annulla'),
-          ),
-          TextButton(
-            style: TextButton.styleFrom(
-              foregroundColor: Theme.of(context).colorScheme.error,
-            ),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Elimina'),
-          ),
-        ],
-      ),
+    // Get the expense to check if it's reimbursable
+    final expenseAsync = await ref.read(expenseProvider(expenseId).future);
+    if (expenseAsync == null) return;
+
+    // Show confirmation dialog with reimbursement warning if applicable (T016-T017)
+    final confirmed = await DeleteConfirmationDialog.show(
+      context,
+      expenseName: expenseAsync.merchant ?? expenseAsync.formattedAmount,
+      isReimbursable: expenseAsync.isPendingReimbursement,
     );
 
+    // Only proceed with deletion if dialog returns true (user confirmed) (T018)
     if (confirmed == true) {
       final success = await ref.read(expenseFormProvider.notifier).deleteExpense(
             expenseId: expenseId,

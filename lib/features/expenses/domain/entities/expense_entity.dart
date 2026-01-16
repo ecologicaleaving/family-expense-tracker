@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 
+import '../../../../core/enums/reimbursement_status.dart';
+
 /// Expense entity representing a household expense.
 class ExpenseEntity extends Equatable {
   const ExpenseEntity({
@@ -19,6 +21,8 @@ class ExpenseEntity extends Equatable {
     this.createdByName,
     this.createdAt,
     this.updatedAt,
+    this.reimbursementStatus = ReimbursementStatus.none,
+    this.reimbursedAt,
   });
 
   /// Unique expense identifier
@@ -69,6 +73,12 @@ class ExpenseEntity extends Equatable {
   /// When the expense was last updated
   final DateTime? updatedAt;
 
+  /// Reimbursement status (Feature 012-expense-improvements)
+  final ReimbursementStatus reimbursementStatus;
+
+  /// Timestamp when expense was marked as reimbursed (for period-based budget calculations)
+  final DateTime? reimbursedAt;
+
   /// Check if the user can edit this expense
   bool canEdit(String userId, bool isAdmin) {
     return createdBy == userId || isAdmin;
@@ -84,6 +94,62 @@ class ExpenseEntity extends Equatable {
 
   /// Check if this expense has a receipt attached
   bool get hasReceipt => receiptUrl != null && receiptUrl!.isNotEmpty;
+
+  /// Whether this expense is pending reimbursement
+  bool get isPendingReimbursement =>
+      reimbursementStatus == ReimbursementStatus.reimbursable;
+
+  /// Whether this expense has been reimbursed
+  bool get isReimbursed =>
+      reimbursementStatus == ReimbursementStatus.reimbursed;
+
+  /// Human-readable reimbursement status label (Italian)
+  String get reimbursementStatusLabel => reimbursementStatus.label;
+
+  /// Check if transition to new status is allowed by business rules
+  bool canTransitionTo(ReimbursementStatus newStatus) {
+    switch (reimbursementStatus) {
+      case ReimbursementStatus.none:
+        return newStatus == ReimbursementStatus.reimbursable;
+
+      case ReimbursementStatus.reimbursable:
+        return newStatus == ReimbursementStatus.reimbursed ||
+               newStatus == ReimbursementStatus.none;
+
+      case ReimbursementStatus.reimbursed:
+        // Can revert, but requires confirmation in UI layer
+        return newStatus == ReimbursementStatus.reimbursable ||
+               newStatus == ReimbursementStatus.none;
+    }
+  }
+
+  /// Check if confirmation dialog is required for this transition
+  bool requiresConfirmation(ReimbursementStatus newStatus) {
+    return reimbursementStatus == ReimbursementStatus.reimbursed &&
+           newStatus != ReimbursementStatus.reimbursed;
+  }
+
+  /// Create updated entity with new reimbursement status
+  ExpenseEntity updateReimbursementStatus(ReimbursementStatus newStatus) {
+    if (!canTransitionTo(newStatus)) {
+      throw StateError(
+        'Invalid transition from $reimbursementStatus to $newStatus',
+      );
+    }
+
+    return copyWith(
+      reimbursementStatus: newStatus,
+      reimbursedAt: newStatus == ReimbursementStatus.reimbursed
+          ? DateTime.now()  // Capture timestamp for period-based budget calc
+          : null,           // Clear timestamp if reverting
+      updatedAt: DateTime.now(),
+    );
+  }
+
+  /// Check if user can change reimbursement status
+  bool canChangeReimbursementStatus(String userId, bool isAdmin) {
+    return canEdit(userId, isAdmin);
+  }
 
   /// Create an empty expense (for initial state)
   factory ExpenseEntity.empty() {
@@ -124,6 +190,8 @@ class ExpenseEntity extends Equatable {
     String? createdByName,
     DateTime? createdAt,
     DateTime? updatedAt,
+    ReimbursementStatus? reimbursementStatus,
+    DateTime? reimbursedAt,
   }) {
     return ExpenseEntity(
       id: id ?? this.id,
@@ -142,6 +210,8 @@ class ExpenseEntity extends Equatable {
       createdByName: createdByName ?? this.createdByName,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      reimbursementStatus: reimbursementStatus ?? this.reimbursementStatus,
+      reimbursedAt: reimbursedAt ?? this.reimbursedAt,
     );
   }
 
@@ -163,6 +233,8 @@ class ExpenseEntity extends Equatable {
         createdByName,
         createdAt,
         updatedAt,
+        reimbursementStatus,
+        reimbursedAt,
       ];
 
   @override

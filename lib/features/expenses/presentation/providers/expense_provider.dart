@@ -1,14 +1,17 @@
 import 'dart:typed_data';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/enums/reimbursement_status.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../widget/presentation/services/widget_update_service.dart';
 import '../../data/datasources/expense_remote_datasource.dart';
 import '../../data/repositories/expense_repository_impl.dart';
 import '../../domain/entities/expense_entity.dart';
 import '../../domain/repositories/expense_repository.dart';
+import '../widgets/reimbursement_status_change_dialog.dart';
 
 /// Provider for expense remote data source
 final expenseRemoteDataSourceProvider = Provider<ExpenseRemoteDataSource>((ref) {
@@ -43,6 +46,7 @@ class ExpenseListState {
     this.filterStartDate,
     this.filterEndDate,
     this.filterCreatedBy,
+    this.filterReimbursementStatus, // T044
   });
 
   final ExpenseListStatus status;
@@ -53,6 +57,7 @@ class ExpenseListState {
   final DateTime? filterStartDate;
   final DateTime? filterEndDate;
   final String? filterCreatedBy;
+  final ReimbursementStatus? filterReimbursementStatus; // T044
 
   ExpenseListState copyWith({
     ExpenseListStatus? status,
@@ -63,6 +68,7 @@ class ExpenseListState {
     DateTime? filterStartDate,
     DateTime? filterEndDate,
     String? filterCreatedBy,
+    ReimbursementStatus? filterReimbursementStatus, // T044
   }) {
     return ExpenseListState(
       status: status ?? this.status,
@@ -73,6 +79,7 @@ class ExpenseListState {
       filterStartDate: filterStartDate ?? this.filterStartDate,
       filterEndDate: filterEndDate ?? this.filterEndDate,
       filterCreatedBy: filterCreatedBy ?? this.filterCreatedBy,
+      filterReimbursementStatus: filterReimbursementStatus ?? this.filterReimbursementStatus, // T044
     );
   }
 
@@ -108,6 +115,7 @@ class ExpenseListNotifier extends StateNotifier<ExpenseListState> {
       endDate: state.filterEndDate,
       categoryId: state.filterCategoryId,
       createdBy: state.filterCreatedBy,
+      reimbursementStatus: state.filterReimbursementStatus, // T045, T046
       limit: _pageSize,
       offset: refresh ? 0 : state.expenses.length,
     );
@@ -161,6 +169,12 @@ class ExpenseListNotifier extends StateNotifier<ExpenseListState> {
     loadExpenses(refresh: true);
   }
 
+  /// Set reimbursement status filter (T044, T045)
+  void setFilterReimbursementStatus(ReimbursementStatus? status) {
+    state = state.copyWith(filterReimbursementStatus: status);
+    loadExpenses(refresh: true);
+  }
+
   /// Clear all filters
   void clearFilters() {
     state = const ExpenseListState();
@@ -185,6 +199,88 @@ class ExpenseListNotifier extends StateNotifier<ExpenseListState> {
   void removeExpenseFromList(String expenseId) {
     state = state.copyWith(
       expenses: state.expenses.where((e) => e.id != expenseId).toList(),
+    );
+  }
+
+  /// Get expense by ID from current list
+  /// Returns null if expense not found in loaded expenses
+  ExpenseEntity? getExpenseById(String expenseId) {
+    try {
+      return state.expenses.firstWhere((e) => e.id == expenseId);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Update reimbursement status of an expense (T038, T039)
+  ///
+  /// Handles confirmation dialog for reversions from reimbursed state
+  /// Updates the expense locally and persists to repository
+  Future<void> updateReimbursementStatus({
+    required BuildContext context,
+    required String expenseId,
+    required ReimbursementStatus newStatus,
+  }) async {
+    final expense = getExpenseById(expenseId);
+    if (expense == null) return;
+
+    // Check if confirmation needed (T039)
+    if (expense.requiresConfirmation(newStatus)) {
+      final confirmed = await ReimbursementStatusChangeDialog.show(
+        context,
+        expenseName: expense.categoryName ?? 'Questa spesa',
+        currentStatus: expense.reimbursementStatus,
+        newStatus: newStatus,
+      );
+
+      if (confirmed != true) return; // User cancelled
+    }
+
+    // Validate transition
+    if (!expense.canTransitionTo(newStatus)) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Transizione di stato non valida'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+      return;
+    }
+
+    // Update expense using entity method
+    final updatedExpense = expense.updateReimbursementStatus(newStatus);
+
+    // Persist to repository
+    final result = await _expenseRepository.updateExpense(
+      expenseId: expenseId,
+      reimbursementStatus: newStatus,
+    );
+
+    result.fold(
+      (failure) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(failure.message),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
+        }
+      },
+      (_) {
+        // Update local state
+        updateExpenseInList(updatedExpense);
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Stato rimborso aggiornato'),
+            ),
+          );
+        }
+      },
     );
   }
 }
@@ -254,6 +350,7 @@ class ExpenseFormNotifier extends StateNotifier<ExpenseFormState> {
     String? notes,
     Uint8List? receiptImage,
     bool isGroupExpense = true,
+    ReimbursementStatus reimbursementStatus = ReimbursementStatus.none, // T035
   }) async {
     state = state.copyWith(status: ExpenseFormStatus.submitting, errorMessage: null);
 
@@ -266,6 +363,7 @@ class ExpenseFormNotifier extends StateNotifier<ExpenseFormState> {
       notes: notes,
       receiptImage: receiptImage,
       isGroupExpense: isGroupExpense,
+      reimbursementStatus: reimbursementStatus, // T035
     );
 
     return result.fold(
@@ -299,6 +397,7 @@ class ExpenseFormNotifier extends StateNotifier<ExpenseFormState> {
     String? paymentMethodId,
     String? merchant,
     String? notes,
+    ReimbursementStatus? reimbursementStatus, // T036
   }) async {
     state = state.copyWith(status: ExpenseFormStatus.submitting, errorMessage: null);
 
@@ -310,6 +409,7 @@ class ExpenseFormNotifier extends StateNotifier<ExpenseFormState> {
       paymentMethodId: paymentMethodId,
       merchant: merchant,
       notes: notes,
+      reimbursementStatus: reimbursementStatus, // T036
     );
 
     return result.fold(

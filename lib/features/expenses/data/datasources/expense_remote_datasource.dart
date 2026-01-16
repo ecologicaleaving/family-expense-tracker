@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/enums/reimbursement_status.dart';
 import '../../../../core/errors/exceptions.dart';
 import '../models/expense_model.dart';
 
@@ -15,6 +16,7 @@ abstract class ExpenseRemoteDataSource {
     String? categoryId,
     String? createdBy,
     bool? isGroupExpense,
+    ReimbursementStatus? reimbursementStatus, // T048
     int? limit,
     int? offset,
   });
@@ -31,6 +33,7 @@ abstract class ExpenseRemoteDataSource {
     String? merchant,
     String? notes,
     bool isGroupExpense = true,
+    ReimbursementStatus reimbursementStatus = ReimbursementStatus.none, // T048
   });
 
   /// Update an existing expense.
@@ -42,6 +45,7 @@ abstract class ExpenseRemoteDataSource {
     String? paymentMethodId,
     String? merchant,
     String? notes,
+    ReimbursementStatus? reimbursementStatus, // T048
   });
 
   /// Delete an expense.
@@ -94,6 +98,7 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
     String? categoryId,
     String? createdBy,
     bool? isGroupExpense,
+    ReimbursementStatus? reimbursementStatus, // T048
     int? limit,
     int? offset,
   }) async {
@@ -123,6 +128,9 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
       }
       if (isGroupExpense != null) {
         filterQuery = filterQuery.eq('is_group_expense', isGroupExpense);
+      }
+      if (reimbursementStatus != null) { // T048
+        filterQuery = filterQuery.eq('reimbursement_status', reimbursementStatus.value);
       }
 
       // Apply ordering and pagination
@@ -181,6 +189,7 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
     String? merchant,
     String? notes,
     bool isGroupExpense = true,
+    ReimbursementStatus reimbursementStatus = ReimbursementStatus.none, // T048
   }) async {
     try {
       final userId = _currentUserId;
@@ -240,6 +249,7 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
             'merchant': merchant,
             'notes': notes,
             'is_group_expense': isGroupExpense,
+            'reimbursement_status': reimbursementStatus.value, // T048
           })
           .select('*, category_name:expense_categories(name)')
           .single();
@@ -273,6 +283,7 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
     String? paymentMethodId,
     String? merchant,
     String? notes,
+    ReimbursementStatus? reimbursementStatus, // T048
   }) async {
     try {
       final updates = <String, dynamic>{};
@@ -293,6 +304,7 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
       }
       if (merchant != null) updates['merchant'] = merchant;
       if (notes != null) updates['notes'] = notes;
+      if (reimbursementStatus != null) updates['reimbursement_status'] = reimbursementStatus.value; // T048
 
       if (updates.isEmpty) {
         return await getExpense(expenseId: expenseId);

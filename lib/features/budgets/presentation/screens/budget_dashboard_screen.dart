@@ -16,6 +16,7 @@ import '../widgets/category_alert_strip.dart';
 import '../widgets/geometric_section_divider.dart';
 import '../widgets/top_spending_bar_chart.dart';
 import '../widgets/unified_category_card.dart';
+import '../../../../shared/widgets/offline_banner.dart';
 
 /// Unified budget dashboard showing all budget information in one screen
 /// Features:
@@ -133,6 +134,9 @@ class _BudgetDashboardContent extends ConsumerWidget {
       },
       child: ListView(
         children: [
+          // Feature 012-expense-improvements T025: StaleDataBanner at top of dashboard
+          const OfflineBanner(showStaleDataWarning: true),
+
           // Hero Section - Total Budget Overview
           BudgetHeroCard(
             totalBudgeted: stats.totalBudgeted,

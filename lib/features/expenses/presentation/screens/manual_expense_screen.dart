@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/enums/reimbursement_status.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../shared/widgets/custom_text_field.dart';
@@ -21,6 +22,7 @@ import '../providers/expense_provider.dart';
 import '../widgets/category_selector.dart';
 import '../widgets/expense_type_toggle.dart';
 import '../widgets/payment_method_selector.dart';
+import '../widgets/reimbursement_toggle.dart';
 
 /// Screen for manual expense entry.
 class ManualExpenseScreen extends ConsumerStatefulWidget {
@@ -40,6 +42,7 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
   String? _selectedCategoryId; // Will be set when categories load
   String? _selectedPaymentMethodId; // Will be set to default Contanti
   bool _isGroupExpense = true; // Default to group expense
+  ReimbursementStatus _selectedReimbursementStatus = ReimbursementStatus.none; // T035
 
   // Track initial values for unsaved changes detection
   late final String _initialAmount;
@@ -49,6 +52,7 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
   late final String? _initialCategoryId;
   late final String? _initialPaymentMethodId;
   late final bool _initialIsGroupExpense;
+  late final ReimbursementStatus _initialReimbursementStatus; // T035
 
   @override
   void initState() {
@@ -61,6 +65,7 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
     _initialCategoryId = _selectedCategoryId;
     _initialPaymentMethodId = _selectedPaymentMethodId;
     _initialIsGroupExpense = _isGroupExpense;
+    _initialReimbursementStatus = _selectedReimbursementStatus; // T035
   }
 
   @override
@@ -79,7 +84,8 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
         _selectedDate != _initialDate ||
         _selectedCategoryId != _initialCategoryId ||
         _selectedPaymentMethodId != _initialPaymentMethodId ||
-        _isGroupExpense != _initialIsGroupExpense;
+        _isGroupExpense != _initialIsGroupExpense ||
+        _selectedReimbursementStatus != _initialReimbursementStatus; // T035
   }
 
   Future<void> _handleSave() async {
@@ -123,6 +129,7 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
           ? _notesController.text.trim()
           : null,
       isGroupExpense: _isGroupExpense,
+      reimbursementStatus: _selectedReimbursementStatus, // T035
     );
 
     if (expense != null && mounted) {
@@ -342,6 +349,18 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
                     enabled: !formState.isSubmitting,
                   );
                 },
+              ),
+              const SizedBox(height: 16),
+
+              // Reimbursement status toggle (T035)
+              ReimbursementToggle(
+                value: _selectedReimbursementStatus,
+                onChanged: (status) {
+                  setState(() {
+                    _selectedReimbursementStatus = status;
+                  });
+                },
+                enabled: !formState.isSubmitting,
               ),
               const SizedBox(height: 16),
 

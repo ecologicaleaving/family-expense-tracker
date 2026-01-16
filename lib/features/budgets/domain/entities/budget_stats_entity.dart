@@ -13,6 +13,8 @@ class BudgetStatsEntity extends Equatable {
     required this.isOverBudget,
     required this.isNearLimit,
     required this.expenseCount,
+    this.totalPendingReimbursements = 0,
+    this.totalReimbursedIncome = 0,
   });
 
   /// Budget ID (null if no budget set)
@@ -40,6 +42,20 @@ class BudgetStatsEntity extends Equatable {
 
   /// Number of expenses included in calculation
   final int expenseCount;
+
+  /// Total amount of expenses marked as reimbursable (pending reimbursement) in cents
+  /// Feature 012-expense-improvements
+  final int totalPendingReimbursements;
+
+  /// Total amount of expenses marked as reimbursed in the current period in cents
+  /// Treated as income in budget calculations (added back to available budget)
+  /// Feature 012-expense-improvements
+  final int totalReimbursedIncome;
+
+  /// Net spent amount after accounting for reimbursements (spentAmount - totalReimbursedIncome)
+  /// This is the actual impact on the budget in the current period
+  /// Feature 012-expense-improvements (T012)
+  int get netSpentAmount => spentAmount - totalReimbursedIncome;
 
   /// Check if a budget is set
   bool get hasBudget => budgetId != null && budgetAmount != null;
@@ -107,6 +123,8 @@ class BudgetStatsEntity extends Equatable {
     bool? isOverBudget,
     bool? isNearLimit,
     int? expenseCount,
+    int? totalPendingReimbursements,
+    int? totalReimbursedIncome,
   }) {
     return BudgetStatsEntity(
       budgetId: budgetId ?? this.budgetId,
@@ -117,6 +135,8 @@ class BudgetStatsEntity extends Equatable {
       isOverBudget: isOverBudget ?? this.isOverBudget,
       isNearLimit: isNearLimit ?? this.isNearLimit,
       expenseCount: expenseCount ?? this.expenseCount,
+      totalPendingReimbursements: totalPendingReimbursements ?? this.totalPendingReimbursements,
+      totalReimbursedIncome: totalReimbursedIncome ?? this.totalReimbursedIncome,
     );
   }
 
@@ -130,6 +150,8 @@ class BudgetStatsEntity extends Equatable {
         isOverBudget,
         isNearLimit,
         expenseCount,
+        totalPendingReimbursements,
+        totalReimbursedIncome,
       ];
 
   @override

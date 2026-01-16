@@ -54,26 +54,92 @@ class BudgetCalculator {
     return total.ceil();
   }
 
-  /// Calculate remaining budget amount
+  /// Calculate total reimbursed income from expenses in a given period
   ///
-  /// [budgetAmount] - Budget amount in whole euros
-  /// [spentAmount] - Spent amount in whole euros
+  /// T027: Feature 012-expense-improvements - User Story 3
+  /// Sums up all expenses that have been marked as reimbursed.
+  /// This amount should be treated as income in budget calculations.
   ///
-  /// Returns remaining amount (can be negative if over budget)
-  static int calculateRemainingAmount(int budgetAmount, int spentAmount) {
-    return budgetAmount - spentAmount;
+  /// [expenses] - List of expenses to analyze
+  ///
+  /// Returns total reimbursed amount in cents
+  static int calculateReimbursedIncome(List<dynamic> expenses) {
+    if (expenses.isEmpty) return 0;
+
+    return expenses.fold<int>(0, (sum, expense) {
+      // Check if expense has reimbursement status and is reimbursed
+      if (expense.reimbursementStatus?.value == 'reimbursed') {
+        return (sum + (expense.amount * 100).round()) as int;
+      }
+      return sum;
+    });
   }
 
-  /// Calculate budget usage percentage
+  /// Calculate total pending reimbursements
+  ///
+  /// T028: Feature 012-expense-improvements - User Story 3
+  /// Sums up all expenses marked as reimbursable (awaiting reimbursement).
+  ///
+  /// [expenses] - List of expenses to analyze
+  ///
+  /// Returns total pending reimbursement amount in cents
+  static int calculatePendingReimbursements(List<dynamic> expenses) {
+    if (expenses.isEmpty) return 0;
+
+    return expenses.fold<int>(0, (sum, expense) {
+      // Check if expense has reimbursement status and is reimbursable
+      if (expense.reimbursementStatus?.value == 'reimbursable') {
+        return (sum + (expense.amount * 100).round()) as int;
+      }
+      return sum;
+    });
+  }
+
+  /// Calculate remaining budget amount with optional reimbursed income
+  ///
+  /// T029: Enhanced to include reimbursed income as additional available funds
+  ///
+  /// **Formula**: remainingAmount = budgetAmount - spentAmount + reimbursedIncome
   ///
   /// [budgetAmount] - Budget amount in whole euros
   /// [spentAmount] - Spent amount in whole euros
+  /// [reimbursedIncome] - Amount reimbursed in cents (default: 0)
+  ///
+  /// Returns remaining amount (can be negative if over budget)
+  static int calculateRemainingAmount(
+    int budgetAmount,
+    int spentAmount, {
+    int reimbursedIncome = 0,
+  }) {
+    // Convert reimbursedIncome from cents to euros
+    final reimbursedEuros = (reimbursedIncome / 100).round();
+    return budgetAmount - spentAmount + reimbursedEuros;
+  }
+
+  /// Calculate budget usage percentage with optional reimbursed income
+  ///
+  /// T030: Enhanced to calculate netSpent (spent - reimbursed) for accurate percentage
+  ///
+  /// **Formula**: percentageUsed = (netSpent / budgetAmount) * 100
+  /// where netSpent = spentAmount - reimbursedIncome
+  ///
+  /// [budgetAmount] - Budget amount in whole euros
+  /// [spentAmount] - Spent amount in whole euros
+  /// [reimbursedIncome] - Amount reimbursed in cents (default: 0)
   ///
   /// Returns percentage used (0-100+), or 0 if budget is 0
-  static double calculatePercentageUsed(int budgetAmount, int spentAmount) {
+  static double calculatePercentageUsed(
+    int budgetAmount,
+    int spentAmount, {
+    int reimbursedIncome = 0,
+  }) {
     if (budgetAmount <= 0) return 0.0;
 
-    final percentage = (spentAmount / budgetAmount) * 100;
+    // Convert reimbursedIncome from cents to euros and calculate net spent
+    final reimbursedEuros = (reimbursedIncome / 100).round();
+    final netSpent = spentAmount - reimbursedEuros;
+
+    final percentage = (netSpent / budgetAmount) * 100;
     return double.parse(percentage.toStringAsFixed(2));
   }
 

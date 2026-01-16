@@ -89,6 +89,19 @@ Future<int> pendingSyncCount(PendingSyncCountRef ref) async {
   return await dataSource.getPendingSyncCount(userId);
 }
 
+/// Provider for last sync timestamp (Feature 012-expense-improvements T026)
+/// Returns null if never synced, otherwise returns DateTime of last successful sync
+@riverpod
+Future<DateTime?> lastSyncTime(LastSyncTimeRef ref) async {
+  // TODO: Implement persistent storage of last sync time
+  // For now, return null (will always show as potentially stale)
+  // In production, this should:
+  // 1. Read from shared preferences or Hive
+  // 2. Update after successful sync operations
+  // 3. Clear on logout
+  return null;
+}
+
 /// Provider to trigger manual sync
 @riverpod
 class SyncTrigger extends _$SyncTrigger {

@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:dartz/dartz.dart';
 
+import '../../../../core/enums/reimbursement_status.dart';
 import '../../../../core/errors/failures.dart';
 import '../entities/expense_entity.dart';
 
@@ -13,13 +14,14 @@ import '../entities/expense_entity.dart';
 abstract class ExpenseRepository {
   /// Get all expenses for the current user's group.
   ///
-  /// Optionally filter by date range, category, and expense type.
+  /// Optionally filter by date range, category, expense type, and reimbursement status.
   Future<Either<Failure, List<ExpenseEntity>>> getExpenses({
     DateTime? startDate,
     DateTime? endDate,
     String? categoryId,
     String? createdBy,
     bool? isGroupExpense,
+    ReimbursementStatus? reimbursementStatus, // T047
     int? limit,
     int? offset,
   });
@@ -42,6 +44,7 @@ abstract class ExpenseRepository {
     String? notes,
     Uint8List? receiptImage,
     bool isGroupExpense = true,
+    ReimbursementStatus reimbursementStatus = ReimbursementStatus.none, // T047
   });
 
   /// Update an existing expense.
@@ -53,6 +56,7 @@ abstract class ExpenseRepository {
     String? paymentMethodId,
     String? merchant,
     String? notes,
+    ReimbursementStatus? reimbursementStatus, // T047
   });
 
   /// Delete an expense.

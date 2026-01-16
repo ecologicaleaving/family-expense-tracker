@@ -35,6 +35,12 @@ class OfflineExpenses extends Table {
   TextColumn get notes => text().nullable()();
   BoolColumn get isGroupExpense => boolean().withDefault(const Constant(true))();
 
+  // Reimbursement tracking (Feature 012-expense-improvements)
+  TextColumn get reimbursementStatus => text()
+      .withDefault(const Constant('none'))
+      .check(reimbursementStatus.isIn(['none', 'reimbursable', 'reimbursed']))();
+  DateTimeColumn get reimbursedAt => dateTime().nullable()();
+
   // Receipt Image Reference (if uploaded offline)
   TextColumn get localReceiptPath => text().nullable()(); // Local file path
   IntColumn get receiptImageSize => integer().nullable()(); // Bytes, for SC-012 tracking

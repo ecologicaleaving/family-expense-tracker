@@ -5,37 +5,76 @@ import '../../features/offline/presentation/providers/offline_providers.dart';
 import '../services/connectivity_service.dart';
 
 /// T081: Offline banner showing network status and pending sync count
+/// T024: Extended to support stale data mode (Feature 012-expense-improvements US2)
 ///
 /// Displays when:
 /// - Device is offline
 /// - There are pending expenses to sync
+/// - Data might be stale (online but last sync >5 minutes ago)
 ///
 /// Features:
 /// - Network status indicator
 /// - Pending expense count
 /// - Manual retry button
+/// - Stale data warning
 /// - Dismissible
 class OfflineBanner extends ConsumerWidget {
-  const OfflineBanner({super.key});
+  const OfflineBanner({
+    super.key,
+    this.showStaleDataWarning = false,
+  });
+
+  /// Whether to show stale data warning when online but data is old
+  final bool showStaleDataWarning;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Watch connectivity status
     final connectivityStatus = ref.watch(connectivityServiceProvider);
-    final pendingCount = ref.watch(pendingSyncCountProvider);
+    final pendingCountAsync = ref.watch(pendingSyncCountProvider);
+    final lastSyncTimeAsync = ref.watch(lastSyncTimeProvider);
 
     return connectivityStatus.when(
       data: (status) {
-        // Only show banner if offline or there are pending items
+        // Check for various states
         final isOffline = status == NetworkStatus.offline;
-        final hasPending = pendingCount.value ?? 0 > 0;
+        final pendingCount = pendingCountAsync.valueOrNull ?? 0;
+        final hasPending = pendingCount > 0;
 
-        if (!isOffline && !hasPending) {
+        // T024: Check if data is stale (online but last sync >5 minutes ago)
+        final now = DateTime.now();
+        final lastSync = lastSyncTimeAsync.valueOrNull;
+        final isStale = showStaleDataWarning &&
+            !isOffline &&
+            lastSync != null &&
+            now.difference(lastSync).inMinutes > 5;
+
+        // Only show banner if offline, has pending items, or data is stale
+        if (!isOffline && !hasPending && !isStale) {
           return const SizedBox.shrink();
         }
 
+        // Determine banner color and icon based on state
+        final Color bannerColor;
+        final IconData icon;
+        final String title;
+
+        if (isOffline) {
+          bannerColor = Colors.orange.shade700;
+          icon = Icons.cloud_off;
+          title = 'Modalità offline';
+        } else if (isStale) {
+          bannerColor = Colors.amber.shade700;
+          icon = Icons.warning_amber_rounded;
+          title = 'Dati potrebbero essere obsoleti';
+        } else {
+          bannerColor = Colors.blue.shade700;
+          icon = Icons.cloud_queue;
+          title = 'Sincronizzazione in corso';
+        }
+
         return Material(
-          color: isOffline ? Colors.orange.shade700 : Colors.blue.shade700,
+          color: bannerColor,
           elevation: 4,
           child: Container(
             padding: const EdgeInsets.symmetric(
@@ -45,7 +84,7 @@ class OfflineBanner extends ConsumerWidget {
             child: Row(
               children: [
                 Icon(
-                  isOffline ? Icons.cloud_off : Icons.cloud_queue,
+                  icon,
                   color: Colors.white,
                   size: 20,
                 ),
@@ -56,9 +95,7 @@ class OfflineBanner extends ConsumerWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        isOffline
-                            ? 'Modalità offline'
-                            : 'Sincronizzazione in corso',
+                        title,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 14,
@@ -68,7 +105,7 @@ class OfflineBanner extends ConsumerWidget {
                       if (hasPending) ...[
                         const SizedBox(height: 4),
                         Text(
-                          '${pendingCount.value} ${(pendingCount.value ?? 0) == 1 ? "spesa" : "spese"} da sincronizzare',
+                          '$pendingCount ${pendingCount == 1 ? "spesa" : "spese"} da sincronizzare',
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.9),
                             fontSize: 12,

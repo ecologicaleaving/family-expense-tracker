@@ -310,10 +310,13 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
       return e.date.year == currentYear && e.date.month == currentMonth;
     }).toList();
 
-    // Calculate group budget stats
+    // Calculate group budget stats (T041, T042)
     // Convert expense amounts from euros to cents for consistency with budget storage
-    final groupExpenses = currentMonthExpenses
+    final groupExpenseEntities = currentMonthExpenses
         .where((e) => e.isGroupExpense)
+        .toList();
+
+    final groupExpenses = groupExpenseEntities
         .map((e) => e.amount)
         .toList();
 
@@ -321,31 +324,54 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
       0,
       (sum, euroAmount) => sum + (euroAmount * 100).round(),
     );
+
+    // Calculate reimbursed income and pending reimbursements (T041)
+    final groupReimbursedIncome = BudgetCalculator.calculateReimbursedIncome(groupExpenseEntities);
+    final groupPendingReimbursements = BudgetCalculator.calculatePendingReimbursements(groupExpenseEntities);
+
     final groupBudgetAmount = state.computedTotals.totalGroupBudget;
+
+    // Use BudgetCalculator methods for accurate calculations with reimbursements (T042)
+    final groupRemainingAmount = groupBudgetAmount > 0
+        ? BudgetCalculator.calculateRemainingAmount(
+            groupBudgetAmount,
+            groupSpentCents,
+            reimbursedIncome: groupReimbursedIncome,
+          )
+        : null;
+
+    final groupPercentageUsed = groupBudgetAmount > 0
+        ? BudgetCalculator.calculatePercentageUsed(
+            groupBudgetAmount,
+            groupSpentCents,
+            reimbursedIncome: groupReimbursedIncome,
+          )
+        : null;
 
     final groupStats = BudgetStatsEntity(
       budgetId: null, // Deprecated: no single budget ID for calculated totals
       budgetAmount: groupBudgetAmount > 0 ? groupBudgetAmount : null,
       spentAmount: groupSpentCents,
-      remainingAmount: groupBudgetAmount > 0
-          ? groupBudgetAmount - groupSpentCents
-          : null,
-      percentageUsed: groupBudgetAmount > 0
-          ? (groupSpentCents / groupBudgetAmount * 100)
-          : null,
+      remainingAmount: groupRemainingAmount,
+      percentageUsed: groupPercentageUsed,
       isOverBudget: groupBudgetAmount > 0
-          ? groupSpentCents >= groupBudgetAmount
+          ? BudgetCalculator.isOverBudget(groupBudgetAmount, groupSpentCents)
           : false,
       isNearLimit: groupBudgetAmount > 0
-          ? (groupSpentCents / groupBudgetAmount) >= 0.8
+          ? BudgetCalculator.isNearLimit(groupBudgetAmount, groupSpentCents)
           : false,
       expenseCount: groupExpenses.length,
+      totalReimbursedIncome: groupReimbursedIncome, // T041
+      totalPendingReimbursements: groupPendingReimbursements, // T041
     );
 
-    // Calculate personal budget stats (user's expenses: both personal + group)
+    // Calculate personal budget stats (user's expenses: both personal + group) (T041, T042)
     // Convert expense amounts from euros to cents for consistency with budget storage
-    final personalExpenses = currentMonthExpenses
+    final personalExpenseEntities = currentMonthExpenses
         .where((e) => e.createdBy == _userId)
+        .toList();
+
+    final personalExpenses = personalExpenseEntities
         .map((e) => e.amount)
         .toList();
 
@@ -353,25 +379,45 @@ class BudgetNotifier extends StateNotifier<BudgetState> {
       0,
       (sum, euroAmount) => sum + (euroAmount * 100).round(),
     );
+
+    // Calculate reimbursed income and pending reimbursements (T041)
+    final personalReimbursedIncome = BudgetCalculator.calculateReimbursedIncome(personalExpenseEntities);
+    final personalPendingReimbursements = BudgetCalculator.calculatePendingReimbursements(personalExpenseEntities);
+
     final personalBudgetAmount = state.computedTotals.totalPersonalBudget;
+
+    // Use BudgetCalculator methods for accurate calculations with reimbursements (T042)
+    final personalRemainingAmount = personalBudgetAmount > 0
+        ? BudgetCalculator.calculateRemainingAmount(
+            personalBudgetAmount,
+            personalSpentCents,
+            reimbursedIncome: personalReimbursedIncome,
+          )
+        : null;
+
+    final personalPercentageUsed = personalBudgetAmount > 0
+        ? BudgetCalculator.calculatePercentageUsed(
+            personalBudgetAmount,
+            personalSpentCents,
+            reimbursedIncome: personalReimbursedIncome,
+          )
+        : null;
 
     final personalStats = BudgetStatsEntity(
       budgetId: null, // Deprecated: no single budget ID for calculated totals
       budgetAmount: personalBudgetAmount > 0 ? personalBudgetAmount : null,
       spentAmount: personalSpentCents,
-      remainingAmount: personalBudgetAmount > 0
-          ? personalBudgetAmount - personalSpentCents
-          : null,
-      percentageUsed: personalBudgetAmount > 0
-          ? (personalSpentCents / personalBudgetAmount * 100)
-          : null,
+      remainingAmount: personalRemainingAmount,
+      percentageUsed: personalPercentageUsed,
       isOverBudget: personalBudgetAmount > 0
-          ? personalSpentCents >= personalBudgetAmount
+          ? BudgetCalculator.isOverBudget(personalBudgetAmount, personalSpentCents)
           : false,
       isNearLimit: personalBudgetAmount > 0
-          ? (personalSpentCents / personalBudgetAmount) >= 0.8
+          ? BudgetCalculator.isNearLimit(personalBudgetAmount, personalSpentCents)
           : false,
       expenseCount: personalExpenses.length,
+      totalReimbursedIncome: personalReimbursedIncome, // T041
+      totalPendingReimbursements: personalPendingReimbursements, // T041
     );
 
     state = state.copyWith(

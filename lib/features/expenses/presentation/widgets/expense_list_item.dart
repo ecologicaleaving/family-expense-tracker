@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/utils/date_formatter.dart';
+import '../../../../shared/widgets/reimbursement_status_badge.dart';
 import '../../domain/entities/expense_entity.dart';
 
 /// List item widget for displaying expense summary in a list.
@@ -130,6 +131,13 @@ class ExpenseListItem extends StatelessWidget {
                 fontWeight: FontWeight.bold,
                 color: theme.colorScheme.primary,
               ),
+            ),
+
+            // Reimbursement status badge (T032)
+            const SizedBox(width: 8),
+            ReimbursementStatusBadge(
+              status: expense.reimbursementStatus,
+              mode: ReimbursementBadgeMode.compact,
             ),
 
             // Arrow

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/config/constants.dart';
+import '../../../../core/enums/reimbursement_status.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../shared/widgets/custom_text_field.dart';
@@ -18,6 +19,8 @@ import '../../domain/entities/expense_entity.dart';
 import '../providers/expense_provider.dart';
 import '../widgets/category_selector.dart';
 import '../widgets/payment_method_selector.dart';
+import '../widgets/reimbursement_status_change_dialog.dart';
+import '../widgets/reimbursement_toggle.dart';
 
 /// Screen for editing an existing expense.
 /// Loads the expense by ID and displays an edit form.
@@ -102,6 +105,7 @@ class _EditExpenseFormState extends ConsumerState<_EditExpenseForm>
   String? _selectedCategoryId;
   String? _selectedPaymentMethodId;
   late bool _isGroupExpense;
+  late ReimbursementStatus _selectedReimbursementStatus; // T036
 
   // Track initial values for unsaved changes detection
   late String _initialAmount;
@@ -111,6 +115,7 @@ class _EditExpenseFormState extends ConsumerState<_EditExpenseForm>
   String? _initialCategoryId;
   String? _initialPaymentMethodId;
   late bool _initialIsGroupExpense;
+  late ReimbursementStatus _initialReimbursementStatus; // T036
 
   @override
   void initState() {
@@ -128,6 +133,7 @@ class _EditExpenseFormState extends ConsumerState<_EditExpenseForm>
     _selectedCategoryId = widget.expense.categoryId;
     _selectedPaymentMethodId = widget.expense.paymentMethodId;
     _isGroupExpense = widget.expense.isGroupExpense;
+    _selectedReimbursementStatus = widget.expense.reimbursementStatus; // T036
 
     // Store initial values for change detection
     _initialAmount = _amountController.text;
@@ -137,6 +143,7 @@ class _EditExpenseFormState extends ConsumerState<_EditExpenseForm>
     _initialCategoryId = _selectedCategoryId;
     _initialPaymentMethodId = _selectedPaymentMethodId;
     _initialIsGroupExpense = _isGroupExpense;
+    _initialReimbursementStatus = _selectedReimbursementStatus; // T036
   }
 
   @override
@@ -155,7 +162,8 @@ class _EditExpenseFormState extends ConsumerState<_EditExpenseForm>
         _selectedDate != _initialDate ||
         _selectedCategoryId != _initialCategoryId ||
         _selectedPaymentMethodId != _initialPaymentMethodId ||
-        _isGroupExpense != _initialIsGroupExpense;
+        _isGroupExpense != _initialIsGroupExpense ||
+        _selectedReimbursementStatus != _initialReimbursementStatus; // T036
   }
 
   Future<void> _handleSave() async {
@@ -182,6 +190,9 @@ class _EditExpenseFormState extends ConsumerState<_EditExpenseForm>
       notes: _notesController.text.trim().isNotEmpty
           ? _notesController.text.trim()
           : null,
+      reimbursementStatus: _selectedReimbursementStatus != _initialReimbursementStatus
+          ? _selectedReimbursementStatus
+          : null, // T036
     );
 
     if (updatedExpense == null) {
@@ -243,6 +254,7 @@ class _EditExpenseFormState extends ConsumerState<_EditExpenseForm>
         _initialCategoryId = _selectedCategoryId;
         _initialPaymentMethodId = _selectedPaymentMethodId;
         _initialIsGroupExpense = _isGroupExpense;
+        _initialReimbursementStatus = _selectedReimbursementStatus; // T036
       });
 
       // Wait for setState rebuild to complete before navigating back
@@ -266,6 +278,26 @@ class _EditExpenseFormState extends ConsumerState<_EditExpenseForm>
     if (picked != null) {
       setState(() {
         _selectedDate = picked;
+      });
+    }
+  }
+
+  /// Handle reimbursement status change with confirmation (T036)
+  Future<void> _handleReimbursementStatusChange(ReimbursementStatus newStatus) async {
+    // If status hasn't actually changed, just update without confirmation
+    if (newStatus == _selectedReimbursementStatus) return;
+
+    // Show confirmation dialog
+    final confirmed = await ReimbursementStatusChangeDialog.show(
+      context,
+      expenseName: widget.expense.categoryName ?? 'Questa spesa',
+      currentStatus: _selectedReimbursementStatus,
+      newStatus: newStatus,
+    );
+
+    if (confirmed == true && mounted) {
+      setState(() {
+        _selectedReimbursementStatus = newStatus;
       });
     }
   }
@@ -360,6 +392,14 @@ class _EditExpenseFormState extends ConsumerState<_EditExpenseForm>
                       _selectedPaymentMethodId = paymentMethodId;
                     });
                   },
+                  enabled: !formState.isSubmitting,
+                ),
+                const SizedBox(height: 16),
+
+                // Reimbursement status toggle (T036)
+                ReimbursementToggle(
+                  value: _selectedReimbursementStatus,
+                  onChanged: _handleReimbursementStatusChange,
                   enabled: !formState.isSubmitting,
                 ),
                 const SizedBox(height: 16),

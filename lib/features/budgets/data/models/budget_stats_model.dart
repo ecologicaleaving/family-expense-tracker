@@ -14,6 +14,8 @@ class BudgetStatsModel extends BudgetStatsEntity {
     required super.isOverBudget,
     required super.isNearLimit,
     required super.expenseCount,
+    super.totalPendingReimbursements,
+    super.totalReimbursedIncome,
   });
 
   /// Create BudgetStatsModel from aggregated query results.
@@ -129,6 +131,8 @@ class BudgetStatsModel extends BudgetStatsEntity {
     bool? isOverBudget,
     bool? isNearLimit,
     int? expenseCount,
+    int? totalPendingReimbursements,
+    int? totalReimbursedIncome,
   }) {
     return BudgetStatsModel(
       budgetId: budgetId ?? this.budgetId,
@@ -139,6 +143,8 @@ class BudgetStatsModel extends BudgetStatsEntity {
       isOverBudget: isOverBudget ?? this.isOverBudget,
       isNearLimit: isNearLimit ?? this.isNearLimit,
       expenseCount: expenseCount ?? this.expenseCount,
+      totalPendingReimbursements: totalPendingReimbursements ?? this.totalPendingReimbursements,
+      totalReimbursedIncome: totalReimbursedIncome ?? this.totalReimbursedIncome,
     );
   }
 }

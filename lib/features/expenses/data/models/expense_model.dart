@@ -1,3 +1,4 @@
+import '../../../../core/enums/reimbursement_status.dart';
 import '../../domain/entities/expense_entity.dart';
 
 /// Expense model for JSON serialization/deserialization.
@@ -21,6 +22,8 @@ class ExpenseModel extends ExpenseEntity {
     super.createdByName,
     super.createdAt,
     super.updatedAt,
+    super.reimbursementStatus = ReimbursementStatus.none,
+    super.reimbursedAt,
   });
 
   /// Create an ExpenseModel from a JSON map (expenses table row).
@@ -47,6 +50,12 @@ class ExpenseModel extends ExpenseEntity {
       updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'] as String)
           : null,
+      reimbursementStatus: ReimbursementStatus.fromString(
+        json['reimbursement_status'] as String? ?? 'none',
+      ),
+      reimbursedAt: json['reimbursed_at'] != null
+          ? DateTime.parse(json['reimbursed_at'] as String)
+          : null,
     );
   }
 
@@ -70,6 +79,8 @@ class ExpenseModel extends ExpenseEntity {
       'receipt_url': receiptUrl,
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
+      'reimbursement_status': reimbursementStatus.value,
+      'reimbursed_at': reimbursedAt?.toIso8601String(),
     };
   }
 
@@ -92,6 +103,8 @@ class ExpenseModel extends ExpenseEntity {
       createdByName: entity.createdByName,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
+      reimbursementStatus: entity.reimbursementStatus,
+      reimbursedAt: entity.reimbursedAt,
     );
   }
 
@@ -114,6 +127,8 @@ class ExpenseModel extends ExpenseEntity {
       createdByName: createdByName,
       createdAt: createdAt,
       updatedAt: updatedAt,
+      reimbursementStatus: reimbursementStatus,
+      reimbursedAt: reimbursedAt,
     );
   }
 
@@ -136,6 +151,8 @@ class ExpenseModel extends ExpenseEntity {
     String? createdByName,
     DateTime? createdAt,
     DateTime? updatedAt,
+    ReimbursementStatus? reimbursementStatus,
+    DateTime? reimbursedAt,
   }) {
     return ExpenseModel(
       id: id ?? this.id,
@@ -154,6 +171,8 @@ class ExpenseModel extends ExpenseEntity {
       createdByName: createdByName ?? this.createdByName,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      reimbursementStatus: reimbursementStatus ?? this.reimbursementStatus,
+      reimbursedAt: reimbursedAt ?? this.reimbursedAt,
     );
   }
 }

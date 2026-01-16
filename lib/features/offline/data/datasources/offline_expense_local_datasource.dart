@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:drift/drift.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 import '../local/offline_database.dart';
@@ -206,8 +207,12 @@ class OfflineExpenseLocalDataSourceImpl
 
   @override
   Future<void> deleteOfflineExpense(String expenseId) async {
+    // Get user ID first to ensure proper isolation
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return;
+
     await (_db.delete(_db.offlineExpenses)
-          ..where((tbl) => tbl.id.equals(expenseId)))
+          ..where((tbl) => tbl.id.equals(expenseId) & tbl.userId.equals(userId)))
         .go();
   }
 
@@ -295,14 +300,14 @@ class OfflineExpenseLocalDataSourceImpl
 
     // Build update companion
     final companion = OfflineExpensesCompanion(
-      amount: amount != null ? drift.Value(amount) : const drift.Value.absent(),
-      date: date != null ? drift.Value(date) : const drift.Value.absent(),
-      categoryId: categoryId != null ? drift.Value(categoryId) : const drift.Value.absent(),
-      merchant: merchant != null ? drift.Value(merchant) : const drift.Value.absent(),
-      notes: notes != null ? drift.Value(notes) : const drift.Value.absent(),
-      isGroupExpense: isGroupExpense != null ? drift.Value(isGroupExpense) : const drift.Value.absent(),
-      localUpdatedAt: drift.Value(now),
-      syncStatus: const drift.Value('pending'), // Reset to pending
+      amount: amount != null ? Value(amount) : const Value.absent(),
+      date: date != null ? Value(date) : const Value.absent(),
+      categoryId: categoryId != null ? Value(categoryId) : const Value.absent(),
+      merchant: merchant != null ? Value(merchant) : const Value.absent(),
+      notes: notes != null ? Value(notes) : const Value.absent(),
+      isGroupExpense: isGroupExpense != null ? Value(isGroupExpense) : const Value.absent(),
+      localUpdatedAt: Value(now),
+      syncStatus: const Value('pending'), // Reset to pending
     );
 
     // Update offline expense
@@ -335,8 +340,8 @@ class OfflineExpenseLocalDataSourceImpl
     return OfflineExpenseModel(updated).toEntity();
   }
 
-  /// T070: Delete offline expense
-  Future<void> deleteOfflineExpense({
+  /// T070: Delete offline expense (with user isolation)
+  Future<void> deleteOfflineExpenseWithUserId({
     required String expenseId,
     required String userId,
   }) async {
@@ -392,17 +397,16 @@ class OfflineExpenseLocalDataSourceImpl
     required String conflictType,
     required Map<String, dynamic> localVersion,
     required Map<String, dynamic> serverVersion,
-    String resolutionStrategy = 'server_wins',
+    String? resolutionAction,
   }) async {
     final companion = SyncConflictsCompanion.insert(
       userId: userId,
       expenseId: expenseId,
       conflictType: conflictType,
-      localVersion: jsonEncode(localVersion),
-      serverVersion: jsonEncode(serverVersion),
+      localVersionData: jsonEncode(localVersion),
+      serverVersionData: jsonEncode(serverVersion),
       detectedAt: DateTime.now(),
-      resolutionStrategy: drift.Value(resolutionStrategy),
-      resolved: const drift.Value(false),
+      resolutionAction: Value(resolutionAction),
     );
 
     await _db.into(_db.syncConflicts).insert(companion);
@@ -411,8 +415,7 @@ class OfflineExpenseLocalDataSourceImpl
   /// T096: Get unresolved conflicts for user
   Future<List<SyncConflict>> getUnresolvedConflicts(String userId) async {
     return await (_db.select(_db.syncConflicts)
-          ..where((tbl) =>
-              tbl.userId.equals(userId) & tbl.resolved.equals(false))
+          ..where((tbl) => tbl.userId.equals(userId))
           ..orderBy([
             (tbl) => OrderingTerm.desc(tbl.detectedAt),
           ]))
@@ -422,13 +425,12 @@ class OfflineExpenseLocalDataSourceImpl
   /// T097: Resolve conflict with chosen strategy
   Future<void> resolveConflict({
     required int conflictId,
-    required String resolutionStrategy,
+    required String resolutionAction,
   }) async {
     final companion = SyncConflictsCompanion(
-      id: drift.Value(conflictId),
-      resolved: const drift.Value(true),
-      resolvedAt: drift.Value(DateTime.now()),
-      resolutionStrategy: drift.Value(resolutionStrategy),
+      id: Value(conflictId),
+      resolvedAt: Value(DateTime.now()),
+      resolutionAction: Value(resolutionAction),
     );
 
     await (_db.update(_db.syncConflicts)
@@ -439,8 +441,7 @@ class OfflineExpenseLocalDataSourceImpl
   /// T098: Get conflict by expense ID
   Future<SyncConflict?> getConflictByExpenseId(String expenseId) async {
     return await (_db.select(_db.syncConflicts)
-          ..where((tbl) =>
-              tbl.expenseId.equals(expenseId) & tbl.resolved.equals(false))
+          ..where((tbl) => tbl.expenseId.equals(expenseId))
           ..limit(1))
         .getSingleOrNull();
   }

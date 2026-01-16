@@ -11,6 +11,7 @@ import '../../../dashboard/presentation/providers/dashboard_provider.dart';
 import '../../../groups/presentation/providers/group_provider.dart';
 import '../providers/expense_provider.dart';
 import '../widgets/expense_list_item.dart';
+import '../widgets/delete_confirmation_dialog.dart';
 
 /// Screen showing list of expenses with filtering options.
 class ExpenseListScreen extends ConsumerStatefulWidget {
@@ -121,7 +122,7 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
           return Dismissible(
             key: Key(expense.id),
             direction: canDelete ? DismissDirection.endToStart : DismissDirection.none,
-            // confirmDismiss: (direction) => _showDeleteConfirmDialog(context),
+            confirmDismiss: (direction) => _showDeleteConfirmDialog(context, expense),
             onDismissed: (direction) => _handleSwipeDelete(expense),
             background: Container(
               alignment: Alignment.centerRight,
@@ -143,28 +144,11 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
     );
   }
 
-  Future<bool?> _showDeleteConfirmDialog(BuildContext context) {
-    return showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Elimina spesa'),
-        content: const Text(
-          'Sei sicuro di voler eliminare questa spesa? L\'azione non può essere annullata.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Annulla'),
-          ),
-          TextButton(
-            style: TextButton.styleFrom(
-              foregroundColor: Theme.of(context).colorScheme.error,
-            ),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Elimina'),
-          ),
-        ],
-      ),
+  Future<bool?> _showDeleteConfirmDialog(BuildContext context, ExpenseEntity expense) {
+    return DeleteConfirmationDialog.show(
+      context,
+      expenseName: expense.merchant ?? expense.formattedAmount,
+      isReimbursable: expense.isPendingReimbursement,
     );
   }
 

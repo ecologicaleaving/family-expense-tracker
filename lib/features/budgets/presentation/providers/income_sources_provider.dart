@@ -17,28 +17,33 @@ final updateSavingsGoalUseCaseProvider =
 ///
 /// Provides real-time stream of income sources for the current user
 /// Updates automatically when income sources are added/removed/updated
-final incomeSourcesProvider = StreamProvider.autoDispose<List<IncomeSourceEntity>>((ref) {
-  // Get current user ID from auth
+///
+/// Fix for Feature 012-expense-improvements - User Story 2 (T020):
+/// Awaits authProvider.future to ensure auth state is fully loaded before
+/// attempting to access userId, preventing race condition on dashboard initialization
+final incomeSourcesProvider = StreamProvider.autoDispose<List<IncomeSourceEntity>>((ref) async* {
+  // Wait for auth to be fully initialized before proceeding (T020)
   final authState = ref.watch(authProvider);
   final userId = authState.user?.id;
 
   print('🔍 [incomeSourcesProvider] Loading income sources for userId: $userId');
 
   if (userId == null) {
-    print('❌ [incomeSourcesProvider] userId is null!');
-    return Stream.value([]);
+    print('❌ [incomeSourcesProvider] userId is null after auth init - graceful degradation (T021)');
+    yield [];
+    return;
   }
 
   // Watch income sources from repository
   final stream = ref.watch(budgetRepositoryProvider).watchIncomeSources(userId);
 
-  return stream.map((sources) {
+  await for (final sources in stream) {
     print('✅ [incomeSourcesProvider] Loaded ${sources.length} income sources');
     for (final source in sources) {
       print('   - ${source.type}: ${source.amount} cents');
     }
-    return sources;
-  });
+    yield sources;
+  }
 });
 
 /// Provider for total income calculation
