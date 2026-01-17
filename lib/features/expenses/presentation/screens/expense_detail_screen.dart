@@ -168,6 +168,18 @@ class ExpenseDetailScreen extends ConsumerWidget {
                             value: expense.paymentMethodName!,
                           ),
                         ],
+                        // Recurring expense indicator (T029)
+                        if (expense.isRecurringExpense) ...[
+                          const Divider(),
+                          _DetailRow(
+                            icon: Icons.loop,
+                            label: 'Ricorrenza',
+                            value: expense.isRecurringInstance
+                                ? 'Generata automaticamente'
+                                : 'Spesa ricorrente',
+                            iconColor: theme.colorScheme.tertiary,
+                          ),
+                        ],
                         if (expense.createdAt != null) ...[
                           const Divider(),
                           _DetailRow(
@@ -329,11 +341,13 @@ class _DetailRow extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.value,
+    this.iconColor,
   });
 
   final IconData icon;
   final String label;
   final String value;
+  final Color? iconColor;
 
   @override
   Widget build(BuildContext context) {
@@ -343,7 +357,11 @@ class _DetailRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: theme.colorScheme.onSurfaceVariant),
+          Icon(
+            icon,
+            size: 20,
+            color: iconColor ?? theme.colorScheme.onSurfaceVariant,
+          ),
           const SizedBox(width: 12),
           Expanded(
             flex: 2,

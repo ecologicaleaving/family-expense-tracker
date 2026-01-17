@@ -23,6 +23,8 @@ class ExpenseEntity extends Equatable {
     this.updatedAt,
     this.reimbursementStatus = ReimbursementStatus.none,
     this.reimbursedAt,
+    this.recurringExpenseId,
+    this.isRecurringInstance = false,
   });
 
   /// Unique expense identifier
@@ -79,6 +81,12 @@ class ExpenseEntity extends Equatable {
   /// Timestamp when expense was marked as reimbursed (for period-based budget calculations)
   final DateTime? reimbursedAt;
 
+  /// Reference to recurring expense template ID (Feature 013-recurring-expenses)
+  final String? recurringExpenseId;
+
+  /// Whether this expense was auto-generated from a recurring expense template
+  final bool isRecurringInstance;
+
   /// Check if the user can edit this expense
   bool canEdit(String userId, bool isAdmin) {
     return createdBy == userId || isAdmin;
@@ -94,6 +102,10 @@ class ExpenseEntity extends Equatable {
 
   /// Check if this expense has a receipt attached
   bool get hasReceipt => receiptUrl != null && receiptUrl!.isNotEmpty;
+
+  /// Whether this expense is part of a recurring expense (Feature 013-recurring-expenses)
+  bool get isRecurringExpense =>
+      recurringExpenseId != null && recurringExpenseId!.isNotEmpty;
 
   /// Whether this expense is pending reimbursement
   bool get isPendingReimbursement =>
@@ -192,6 +204,8 @@ class ExpenseEntity extends Equatable {
     DateTime? updatedAt,
     ReimbursementStatus? reimbursementStatus,
     DateTime? reimbursedAt,
+    String? recurringExpenseId,
+    bool? isRecurringInstance,
   }) {
     return ExpenseEntity(
       id: id ?? this.id,
@@ -212,6 +226,8 @@ class ExpenseEntity extends Equatable {
       updatedAt: updatedAt ?? this.updatedAt,
       reimbursementStatus: reimbursementStatus ?? this.reimbursementStatus,
       reimbursedAt: reimbursedAt ?? this.reimbursedAt,
+      recurringExpenseId: recurringExpenseId ?? this.recurringExpenseId,
+      isRecurringInstance: isRecurringInstance ?? this.isRecurringInstance,
     );
   }
 
@@ -235,6 +251,8 @@ class ExpenseEntity extends Equatable {
         updatedAt,
         reimbursementStatus,
         reimbursedAt,
+        recurringExpenseId,
+        isRecurringInstance,
       ];
 
   @override

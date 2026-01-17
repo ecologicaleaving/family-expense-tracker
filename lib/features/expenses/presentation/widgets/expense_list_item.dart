@@ -99,6 +99,15 @@ class ExpenseListItem extends StatelessWidget {
                           color: theme.colorScheme.primary,
                         ),
                       ],
+                      // Recurring expense indicator (T028)
+                      if (expense.isRecurringExpense) ...[
+                        const SizedBox(width: 8),
+                        Icon(
+                          Icons.loop,
+                          size: 14,
+                          color: theme.colorScheme.tertiary,
+                        ),
+                      ],
                       // Payment method indicator
                       if (expense.paymentMethodName != null) ...[
                         const SizedBox(width: 8),
