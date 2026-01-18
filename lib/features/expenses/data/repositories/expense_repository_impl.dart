@@ -74,6 +74,8 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
     Uint8List? receiptImage,
     bool isGroupExpense = true,
     ReimbursementStatus reimbursementStatus = ReimbursementStatus.none, // T048
+    String? createdBy, // T014
+    String? lastModifiedBy, // T014
   }) async {
     try {
       // Create the expense first
@@ -86,6 +88,8 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
         notes: notes,
         isGroupExpense: isGroupExpense,
         reimbursementStatus: reimbursementStatus, // T048
+        createdBy: createdBy, // T014
+        lastModifiedBy: lastModifiedBy, // T014
       );
 
       // Upload receipt if provided
@@ -132,6 +136,42 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
         reimbursementStatus: reimbursementStatus, // T048
       );
       return Right(expense.toEntity());
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, ExpenseEntity>> updateExpenseWithTimestamp({
+    required String expenseId,
+    required DateTime originalUpdatedAt,
+    required String lastModifiedBy,
+    double? amount,
+    DateTime? date,
+    String? categoryId,
+    String? paymentMethodId,
+    String? merchant,
+    String? notes,
+    ReimbursementStatus? reimbursementStatus,
+  }) async {
+    try {
+      final expense = await remoteDataSource.updateExpenseWithTimestamp(
+        expenseId: expenseId,
+        originalUpdatedAt: originalUpdatedAt,
+        lastModifiedBy: lastModifiedBy,
+        amount: amount,
+        date: date,
+        categoryId: categoryId,
+        paymentMethodId: paymentMethodId,
+        merchant: merchant,
+        notes: notes,
+        reimbursementStatus: reimbursementStatus,
+      );
+      return Right(expense.toEntity());
+    } on ConflictException catch (e) {
+      return Left(ConflictFailure(e.message));
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));
     } catch (e) {

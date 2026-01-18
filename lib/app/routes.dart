@@ -194,7 +194,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'editExpense',
         builder: (context, state) {
           final expenseId = state.pathParameters['id']!;
-          return EditExpenseScreen(expenseId: expenseId);
+          // T017: Use ManualExpenseScreen for edit mode (Feature 001)
+          return ManualExpenseScreen(expenseId: expenseId);
         },
       ),
       // Feature 013: Recurring expenses management

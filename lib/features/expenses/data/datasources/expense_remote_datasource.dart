@@ -25,6 +25,10 @@ abstract class ExpenseRemoteDataSource {
   Future<ExpenseModel> getExpense({required String expenseId});
 
   /// Create a new expense.
+  ///
+  /// T014: For admin creating expenses on behalf of members:
+  /// - createdBy: User ID of who created the expense (defaults to current user if null)
+  /// - lastModifiedBy: User ID of who last modified (for audit trail when admin creates)
   Future<ExpenseModel> createExpense({
     required double amount,
     required DateTime date,
@@ -34,6 +38,8 @@ abstract class ExpenseRemoteDataSource {
     String? notes,
     bool isGroupExpense = true,
     ReimbursementStatus reimbursementStatus = ReimbursementStatus.none, // T048
+    String? createdBy, // T014
+    String? lastModifiedBy, // T014
   });
 
   /// Update an existing expense.
@@ -46,6 +52,23 @@ abstract class ExpenseRemoteDataSource {
     String? merchant,
     String? notes,
     ReimbursementStatus? reimbursementStatus, // T048
+  });
+
+  /// Update an existing expense with optimistic locking (Feature 001-admin-expenses-cash-fix).
+  ///
+  /// Uses the updated_at timestamp for optimistic locking to prevent concurrent edit conflicts.
+  /// Throws ConflictException if the expense was modified by another user since [originalUpdatedAt].
+  Future<ExpenseModel> updateExpenseWithTimestamp({
+    required String expenseId,
+    required DateTime originalUpdatedAt,
+    required String lastModifiedBy,
+    double? amount,
+    DateTime? date,
+    String? categoryId,
+    String? paymentMethodId,
+    String? merchant,
+    String? notes,
+    ReimbursementStatus? reimbursementStatus,
   });
 
   /// Delete an expense.
@@ -190,20 +213,25 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
     String? notes,
     bool isGroupExpense = true,
     ReimbursementStatus reimbursementStatus = ReimbursementStatus.none, // T048
+    String? createdBy, // T014
+    String? lastModifiedBy, // T014
   }) async {
     try {
-      final userId = _currentUserId;
+      final currentUserId = _currentUserId;
       final groupId = await _currentUserGroupId;
 
       if (groupId == null) {
         throw const GroupException('Non fai parte di nessun gruppo', 'not_in_group');
       }
 
-      // Get user's display name
+      // T014: Use provided createdBy or default to current user
+      final effectiveCreatedBy = createdBy ?? currentUserId;
+
+      // Get creator's display name
       final profileResponse = await supabaseClient
           .from('profiles')
           .select('display_name')
-          .eq('id', userId)
+          .eq('id', effectiveCreatedBy)
           .single();
       final displayName = profileResponse['display_name'] as String?;
 
@@ -237,9 +265,9 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
           .from('expenses')
           .insert({
             'group_id': groupId,
-            'created_by': userId,
+            'created_by': effectiveCreatedBy, // T014: Use effective created by
             'created_by_name': displayName ?? 'Utente',
-            'paid_by': userId,
+            'paid_by': effectiveCreatedBy, // T014: Use effective created by
             'paid_by_name': displayName ?? 'Utente',
             'amount': amount,
             'date': normalizedDate.toIso8601String().split('T')[0],
@@ -250,6 +278,7 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
             'notes': notes,
             'is_group_expense': isGroupExpense,
             'reimbursement_status': reimbursementStatus.value, // T048
+            'last_modified_by': lastModifiedBy ?? effectiveCreatedBy, // T014: Set last_modified_by
           })
           .select('*, category_name:expense_categories(name)')
           .single();
@@ -326,6 +355,72 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
     } on PostgrestException catch (e) {
       throw ServerException(e.message, e.code);
     } catch (e) {
+      throw ServerException(e.toString());
+    }
+  }
+
+  @override
+  Future<ExpenseModel> updateExpenseWithTimestamp({
+    required String expenseId,
+    required DateTime originalUpdatedAt,
+    required String lastModifiedBy,
+    double? amount,
+    DateTime? date,
+    String? categoryId,
+    String? paymentMethodId,
+    String? merchant,
+    String? notes,
+    ReimbursementStatus? reimbursementStatus,
+  }) async {
+    try {
+      final updates = <String, dynamic>{};
+
+      // Add last_modified_by for audit trail
+      updates['last_modified_by'] = lastModifiedBy;
+
+      if (amount != null) updates['amount'] = amount;
+      if (date != null) updates['date'] = date.toIso8601String().split('T')[0];
+      if (categoryId != null) updates['category_id'] = categoryId;
+      if (paymentMethodId != null) {
+        // Get payment method name for denormalization
+        final paymentMethodResponse = await supabaseClient
+            .from('payment_methods')
+            .select('name')
+            .eq('id', paymentMethodId)
+            .single();
+        final paymentMethodName = paymentMethodResponse['name'] as String;
+        updates['payment_method_id'] = paymentMethodId;
+        updates['payment_method_name'] = paymentMethodName;
+      }
+      if (merchant != null) updates['merchant'] = merchant;
+      if (notes != null) updates['notes'] = notes;
+      if (reimbursementStatus != null) updates['reimbursement_status'] = reimbursementStatus.value;
+
+      // Optimistic locking: only update if updated_at matches the original timestamp
+      final response = await supabaseClient
+          .from('expenses')
+          .update(updates)
+          .eq('id', expenseId)
+          .eq('updated_at', originalUpdatedAt.toIso8601String())
+          .select('*, category_name:expense_categories(name)');
+
+      // Check if update affected any rows (empty list means conflict)
+      if (response.isEmpty) {
+        throw ConflictException.expenseModified;
+      }
+
+      final responseData = response.first;
+
+      // Extract category_name from nested object if present
+      if (responseData['category_name'] != null && responseData['category_name'] is Map) {
+        responseData['category_name'] = responseData['category_name']['name'];
+      }
+
+      return ExpenseModel.fromJson(responseData);
+    } on PostgrestException catch (e) {
+      throw ServerException(e.message, e.code);
+    } catch (e) {
+      if (e is ConflictException) rethrow;
       throw ServerException(e.toString());
     }
   }

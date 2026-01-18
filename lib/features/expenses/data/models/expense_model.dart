@@ -26,6 +26,7 @@ class ExpenseModel extends ExpenseEntity {
     super.reimbursedAt,
     super.recurringExpenseId,
     super.isRecurringInstance = false,
+    super.lastModifiedBy,
   });
 
   /// Create an ExpenseModel from a JSON map (expenses table row).
@@ -60,6 +61,7 @@ class ExpenseModel extends ExpenseEntity {
           : null,
       recurringExpenseId: json['recurring_expense_id'] as String?,
       isRecurringInstance: json['is_recurring_instance'] as bool? ?? false,
+      lastModifiedBy: json['last_modified_by'] as String?,
     );
   }
 
@@ -85,6 +87,7 @@ class ExpenseModel extends ExpenseEntity {
       'updated_at': updatedAt?.toIso8601String(),
       'reimbursement_status': reimbursementStatus.value,
       'reimbursed_at': reimbursedAt?.toIso8601String(),
+      'last_modified_by': lastModifiedBy,
     };
   }
 
@@ -109,6 +112,9 @@ class ExpenseModel extends ExpenseEntity {
       updatedAt: entity.updatedAt,
       reimbursementStatus: entity.reimbursementStatus,
       reimbursedAt: entity.reimbursedAt,
+      recurringExpenseId: entity.recurringExpenseId,
+      isRecurringInstance: entity.isRecurringInstance,
+      lastModifiedBy: entity.lastModifiedBy,
     );
   }
 
@@ -133,6 +139,9 @@ class ExpenseModel extends ExpenseEntity {
       updatedAt: updatedAt,
       reimbursementStatus: reimbursementStatus,
       reimbursedAt: reimbursedAt,
+      recurringExpenseId: recurringExpenseId,
+      isRecurringInstance: isRecurringInstance,
+      lastModifiedBy: lastModifiedBy,
     );
   }
 
@@ -159,6 +168,7 @@ class ExpenseModel extends ExpenseEntity {
     DateTime? reimbursedAt,
     String? recurringExpenseId,
     bool? isRecurringInstance,
+    String? lastModifiedBy,
   }) {
     return ExpenseModel(
       id: id ?? this.id,
@@ -181,6 +191,7 @@ class ExpenseModel extends ExpenseEntity {
       reimbursedAt: reimbursedAt ?? this.reimbursedAt,
       recurringExpenseId: recurringExpenseId ?? this.recurringExpenseId,
       isRecurringInstance: isRecurringInstance ?? this.isRecurringInstance,
+      lastModifiedBy: lastModifiedBy ?? this.lastModifiedBy,
     );
   }
 }

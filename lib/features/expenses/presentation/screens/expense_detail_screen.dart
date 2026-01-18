@@ -193,6 +193,55 @@ class ExpenseDetailScreen extends ConsumerWidget {
                   ),
                 ),
 
+                // T022: Audit trail display (Feature 001-admin-expenses-cash-fix)
+                if (expense.wasModified) ...[
+                  const SizedBox(height: 16),
+                  Card(
+                    color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.edit_note,
+                            size: 20,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Consumer(
+                              builder: (context, ref, _) {
+                                // Get member names for display
+                                final groupMembers = ref.watch(groupMembersProvider);
+                                final memberNames = Map<String, String>.fromEntries(
+                                  groupMembers.map((m) => MapEntry(m.userId, m.displayName)),
+                                );
+
+                                // Get current user ID
+                                final currentUserId = ref.watch(currentUserIdProvider);
+
+                                final modifierName = expense.getLastModifiedByName(
+                                  currentUserId,
+                                  memberNames,
+                                );
+
+                                return Text(
+                                  modifierName.isNotEmpty
+                                      ? 'Modificato da $modifierName'
+                                      : 'Modificato',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+
                 // Reimbursement status change section (T051)
                 const SizedBox(height: 16),
                 Card(

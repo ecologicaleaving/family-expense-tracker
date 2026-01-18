@@ -341,6 +341,10 @@ class ExpenseFormNotifier extends StateNotifier<ExpenseFormState> {
   final WidgetUpdateService _widgetUpdateService;
 
   /// Create a new expense
+  ///
+  /// T014: For admin creating expenses on behalf of members:
+  /// - createdBy: User ID of who created the expense (defaults to current user)
+  /// - lastModifiedBy: User ID of who last modified (for audit trail when admin creates)
   Future<ExpenseEntity?> createExpense({
     required double amount,
     required DateTime date,
@@ -351,6 +355,8 @@ class ExpenseFormNotifier extends StateNotifier<ExpenseFormState> {
     Uint8List? receiptImage,
     bool isGroupExpense = true,
     ReimbursementStatus reimbursementStatus = ReimbursementStatus.none, // T035
+    String? createdBy, // T014
+    String? lastModifiedBy, // T014
   }) async {
     state = state.copyWith(status: ExpenseFormStatus.submitting, errorMessage: null);
 
@@ -364,6 +370,8 @@ class ExpenseFormNotifier extends StateNotifier<ExpenseFormState> {
       receiptImage: receiptImage,
       isGroupExpense: isGroupExpense,
       reimbursementStatus: reimbursementStatus, // T035
+      createdBy: createdBy, // T014
+      lastModifiedBy: lastModifiedBy, // T014
     );
 
     return result.fold(
@@ -410,6 +418,59 @@ class ExpenseFormNotifier extends StateNotifier<ExpenseFormState> {
       merchant: merchant,
       notes: notes,
       reimbursementStatus: reimbursementStatus, // T036
+    );
+
+    return result.fold(
+      (failure) {
+        state = state.copyWith(
+          status: ExpenseFormStatus.error,
+          errorMessage: failure.message,
+        );
+        return null;
+      },
+      (expense) {
+        state = state.copyWith(
+          status: ExpenseFormStatus.success,
+          expense: expense,
+        );
+        // Trigger widget update after successful expense update
+        _widgetUpdateService.triggerUpdate().catchError((error) {
+          print('Failed to update widget: $error');
+        });
+        return expense;
+      },
+    );
+  }
+
+  /// Update an existing expense with optimistic locking (Feature 001-admin-expenses-cash-fix)
+  ///
+  /// Uses the updated_at timestamp for optimistic locking to prevent concurrent edit conflicts.
+  /// Throws ConflictException (wrapped in ConflictFailure) if the expense was modified by another user.
+  Future<ExpenseEntity?> updateExpenseWithLock({
+    required String expenseId,
+    required DateTime originalUpdatedAt,
+    required String lastModifiedBy,
+    double? amount,
+    DateTime? date,
+    String? categoryId,
+    String? paymentMethodId,
+    String? merchant,
+    String? notes,
+    ReimbursementStatus? reimbursementStatus,
+  }) async {
+    state = state.copyWith(status: ExpenseFormStatus.submitting, errorMessage: null);
+
+    final result = await _expenseRepository.updateExpenseWithTimestamp(
+      expenseId: expenseId,
+      originalUpdatedAt: originalUpdatedAt,
+      lastModifiedBy: lastModifiedBy,
+      amount: amount,
+      date: date,
+      categoryId: categoryId,
+      paymentMethodId: paymentMethodId,
+      merchant: merchant,
+      notes: notes,
+      reimbursementStatus: reimbursementStatus,
     );
 
     return result.fold(
@@ -572,3 +633,10 @@ final expensesByCategoryProvider = FutureProvider.autoDispose
     (expenses) => expenses,
   );
 });
+
+/// Provider for selected member when admin creates expense on behalf of member (Feature 001-admin-expenses-cash-fix)
+///
+/// This provider holds the user ID of the member for whom the admin is creating/editing an expense.
+/// - null means expense created by/for current user (default behavior)
+/// - Non-null means admin is creating expense on behalf of selected member
+final selectedMemberForExpenseProvider = StateProvider<String?>((ref) => null);

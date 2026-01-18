@@ -35,6 +35,10 @@ abstract class ExpenseRepository {
   ///
   /// Returns the created expense with its generated ID.
   /// If paymentMethodId is null, defaults to "Contanti" (Cash).
+  ///
+  /// T014: For admin creating expenses on behalf of members:
+  /// - createdBy: User ID of who created the expense (defaults to current user)
+  /// - lastModifiedBy: User ID of who last modified (for audit trail when admin creates)
   Future<Either<Failure, ExpenseEntity>> createExpense({
     required double amount,
     required DateTime date,
@@ -45,6 +49,8 @@ abstract class ExpenseRepository {
     Uint8List? receiptImage,
     bool isGroupExpense = true,
     ReimbursementStatus reimbursementStatus = ReimbursementStatus.none, // T047
+    String? createdBy, // T014: Override for admin creating on behalf of member
+    String? lastModifiedBy, // T014: Admin user ID when creating on behalf
   });
 
   /// Update an existing expense.
@@ -57,6 +63,23 @@ abstract class ExpenseRepository {
     String? merchant,
     String? notes,
     ReimbursementStatus? reimbursementStatus, // T047
+  });
+
+  /// Update an existing expense with optimistic locking (Feature 001-admin-expenses-cash-fix).
+  ///
+  /// Uses the updated_at timestamp for optimistic locking to prevent concurrent edit conflicts.
+  /// Throws ConflictException if the expense was modified by another user since [originalUpdatedAt].
+  Future<Either<Failure, ExpenseEntity>> updateExpenseWithTimestamp({
+    required String expenseId,
+    required DateTime originalUpdatedAt,
+    required String lastModifiedBy,
+    double? amount,
+    DateTime? date,
+    String? categoryId,
+    String? paymentMethodId,
+    String? merchant,
+    String? notes,
+    ReimbursementStatus? reimbursementStatus,
   });
 
   /// Delete an expense.

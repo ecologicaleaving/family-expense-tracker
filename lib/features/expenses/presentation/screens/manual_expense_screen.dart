@@ -19,17 +19,27 @@ import '../../../dashboard/presentation/providers/dashboard_provider.dart';
 import '../../../dashboard/presentation/widgets/expenses_chart_widget.dart';
 import '../../../dashboard/presentation/widgets/personal_dashboard_view.dart';
 import '../../../groups/presentation/providers/group_provider.dart';
+import '../../../payment_methods/presentation/providers/payment_method_provider.dart';
+import '../../domain/entities/expense_entity.dart';
 import '../providers/expense_provider.dart';
 import '../providers/recurring_expense_provider.dart';
 import '../widgets/category_selector.dart';
 import '../widgets/expense_type_toggle.dart';
+import '../widgets/member_selector.dart';
 import '../widgets/payment_method_selector.dart';
 import '../widgets/recurring_expense_config_widget.dart';
 import '../widgets/reimbursement_toggle.dart';
 
 /// Screen for manual expense entry.
+///
+/// T016: Supports edit mode when expenseId is provided
 class ManualExpenseScreen extends ConsumerStatefulWidget {
-  const ManualExpenseScreen({super.key});
+  const ManualExpenseScreen({
+    super.key,
+    this.expenseId, // T016: Optional expense ID for edit mode
+  });
+
+  final String? expenseId;
 
   @override
   ConsumerState<ManualExpenseScreen> createState() => _ManualExpenseScreenState();
@@ -46,6 +56,14 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
   String? _selectedPaymentMethodId; // Will be set to default Contanti
   bool _isGroupExpense = true; // Default to group expense
   ReimbursementStatus _selectedReimbursementStatus = ReimbursementStatus.none; // T035
+
+  // T013: Member selection for admin creating expenses on behalf of members
+  String? _selectedMemberIdForExpense; // null = current user, non-null = admin creating for member
+
+  // T016: Edit mode tracking
+  bool _isEditMode = false;
+  ExpenseEntity? _originalExpense;
+  DateTime? _originalUpdatedAt; // T019: For optimistic locking
 
   // Recurring expense configuration (T025)
   bool _isRecurring = false;
@@ -68,6 +86,10 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
   @override
   void initState() {
     super.initState();
+
+    // T016: Check if in edit mode
+    _isEditMode = widget.expenseId != null;
+
     // Store initial values
     _initialAmount = _amountController.text;
     _initialMerchant = _merchantController.text;
@@ -80,6 +102,77 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
     _initialIsRecurring = _isRecurring; // T025
     _initialRecurrenceFrequency = _recurrenceFrequency; // T025
     _initialBudgetReservationEnabled = _budgetReservationEnabled; // T025
+
+    // T010: Initialize payment method to default Contanti after first frame
+    // T014: Initialize selected member to current user for admin
+    // T016: Load expense data if in edit mode
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+
+      // Get current user ID
+      final userId = ref.read(currentUserIdProvider);
+
+      // T016: Load expense data if editing
+      if (_isEditMode && widget.expenseId != null) {
+        await _loadExpenseForEditing(widget.expenseId!);
+      } else {
+        // T010: Set payment method to default Contanti if not already set (create mode only)
+        final paymentMethodState = ref.read(paymentMethodProvider(userId));
+        if (_selectedPaymentMethodId == null && paymentMethodState.defaultContanti != null) {
+          setState(() {
+            _selectedPaymentMethodId = paymentMethodState.defaultContanti!.id;
+          });
+        }
+
+        // T014: Set selected member to current user (default for admin creating expenses)
+        if (_selectedMemberIdForExpense == null) {
+          setState(() {
+            _selectedMemberIdForExpense = userId;
+          });
+        }
+      }
+    });
+  }
+
+  /// T016: Load expense data for editing
+  Future<void> _loadExpenseForEditing(String expenseId) async {
+    final repository = ref.read(expenseRepositoryProvider);
+    final result = await repository.getExpense(expenseId: expenseId);
+
+    result.fold(
+      (failure) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Errore nel caricamento della spesa: ${failure.message}'),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
+          // Navigate back on error
+          context.pop();
+        }
+      },
+      (expense) {
+        if (mounted) {
+          setState(() {
+            // Store original expense for reference
+            _originalExpense = expense;
+            _originalUpdatedAt = expense.updatedAt; // T019: For optimistic locking
+
+            // Pre-populate form fields
+            _amountController.text = expense.amount.toString();
+            _selectedDate = expense.date;
+            _selectedCategoryId = expense.categoryId;
+            _selectedPaymentMethodId = expense.paymentMethodId;
+            _merchantController.text = expense.merchant ?? '';
+            _notesController.text = expense.notes ?? '';
+            _isGroupExpense = expense.isGroupExpense;
+            _selectedReimbursementStatus = expense.reimbursementStatus;
+            _selectedMemberIdForExpense = expense.createdBy; // Show who the expense is for
+          });
+        }
+      },
+    );
   }
 
   @override
@@ -131,11 +224,91 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
       return;
     }
 
-    // Branch based on whether expense is recurring (T026)
-    if (_isRecurring) {
+    // T018: Branch based on edit mode, recurring, or regular create
+    if (_isEditMode) {
+      await _updateExpense(amount);
+    } else if (_isRecurring) {
       await _saveRecurringExpense(amount);
     } else {
       await _saveRegularExpense(amount);
+    }
+  }
+
+  /// T018: Update an existing expense with optimistic locking
+  Future<void> _updateExpense(double amount) async {
+    if (_originalExpense == null || _originalUpdatedAt == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Errore: dati spesa originale mancanti')),
+        );
+      }
+      return;
+    }
+
+    final formNotifier = ref.read(expenseFormProvider.notifier);
+    final listNotifier = ref.read(expenseListProvider.notifier);
+    final currentUserId = ref.read(currentUserIdProvider);
+
+    final updatedExpense = await formNotifier.updateExpenseWithLock(
+      expenseId: _originalExpense!.id,
+      originalUpdatedAt: _originalUpdatedAt!,
+      lastModifiedBy: currentUserId,
+      amount: amount != _originalExpense!.amount ? amount : null,
+      date: _selectedDate != _originalExpense!.date ? _selectedDate : null,
+      categoryId: _selectedCategoryId != _originalExpense!.categoryId ? _selectedCategoryId : null,
+      paymentMethodId: _selectedPaymentMethodId != _originalExpense!.paymentMethodId ? _selectedPaymentMethodId : null,
+      merchant: _merchantController.text.trim() != (_originalExpense!.merchant ?? '')
+          ? (_merchantController.text.trim().isNotEmpty ? _merchantController.text.trim() : null)
+          : null,
+      notes: _notesController.text.trim() != (_originalExpense!.notes ?? '')
+          ? (_notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null)
+          : null,
+      reimbursementStatus: _selectedReimbursementStatus != _originalExpense!.reimbursementStatus
+          ? _selectedReimbursementStatus
+          : null,
+    );
+
+    if (updatedExpense != null && mounted) {
+      listNotifier.updateExpenseInList(updatedExpense);
+
+      // Refresh dashboard to reflect the updated expense
+      ref.read(dashboardProvider.notifier).refresh();
+
+      // Invalidate personal dashboard providers to refresh totals
+      ref.invalidate(personalExpensesByCategoryProvider);
+      ref.invalidate(expensesByPeriodProvider);
+      ref.invalidate(recentPersonalExpensesProvider);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Spesa aggiornata')),
+        );
+        context.pop(); // Return to previous screen
+      }
+    } else if (mounted) {
+      // T020: Handle conflict error with Refresh action
+      final formState = ref.read(expenseFormProvider);
+      if (formState.hasError && formState.errorMessage != null) {
+        final isConflict = formState.errorMessage!.contains('modificata da un altro utente');
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(formState.errorMessage!),
+            backgroundColor: Theme.of(context).colorScheme.error,
+            action: isConflict
+                ? SnackBarAction(
+                    label: 'Ricarica',
+                    textColor: Colors.white,
+                    onPressed: () async {
+                      // Reload expense data
+                      await _loadExpenseForEditing(widget.expenseId!);
+                    },
+                  )
+                : null,
+            duration: isConflict ? const Duration(seconds: 10) : const Duration(seconds: 4),
+          ),
+        );
+      }
     }
   }
 
@@ -143,6 +316,9 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
   Future<void> _saveRegularExpense(double amount) async {
     final formNotifier = ref.read(expenseFormProvider.notifier);
     final listNotifier = ref.read(expenseListProvider.notifier);
+
+    // T014: Get current user ID for lastModifiedBy
+    final currentUserId = ref.read(currentUserIdProvider);
 
     final expense = await formNotifier.createExpense(
       amount: amount,
@@ -157,6 +333,8 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
           : null,
       isGroupExpense: _isGroupExpense,
       reimbursementStatus: _selectedReimbursementStatus, // T035
+      createdBy: _selectedMemberIdForExpense, // T014: Use selected member if admin
+      lastModifiedBy: _selectedMemberIdForExpense != null ? currentUserId : null, // T014: Set admin as last modifier
     );
 
     if (expense != null && mounted) {
@@ -332,6 +510,23 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
   Widget build(BuildContext context) {
     final formState = ref.watch(expenseFormProvider);
 
+    // T021: Listen for admin demotion during edit mode
+    if (_isEditMode) {
+      ref.listen<bool>(isGroupAdminProvider, (previous, next) {
+        // If admin status changed from true to false while editing
+        if (previous == true && next == false && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Hai perso i privilegi di amministratore. Non puoi più modificare questa spesa.'),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
+          // Navigate back to expenses list
+          context.go('/expenses');
+        }
+      });
+    }
+
     return buildWithNavigationGuard(
       context,
       Scaffold(
@@ -340,7 +535,7 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/'),
         ),
-        title: const Text('Nuova spesa'),
+        title: Text(_isEditMode ? 'Modifica spesa' : 'Nuova spesa'), // T016
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -355,6 +550,18 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
                   padding: const EdgeInsets.only(bottom: 16),
                   child: InlineError(message: formState.errorMessage!),
                 ),
+
+              // T013: Member selector for admin creating expenses on behalf of members
+              MemberSelector(
+                selectedMemberId: _selectedMemberIdForExpense,
+                onChanged: (memberId) {
+                  setState(() {
+                    _selectedMemberIdForExpense = memberId;
+                  });
+                },
+                enabled: !formState.isSubmitting,
+              ),
+              const SizedBox(height: 16),
 
               // Amount field
               AmountTextField(
