@@ -28,6 +28,7 @@ abstract class ExpenseRemoteDataSource {
   ///
   /// T014: For admin creating expenses on behalf of members:
   /// - createdBy: User ID of who created the expense (defaults to current user if null)
+  /// - paidBy: User ID who paid for the expense (defaults to createdBy if null)
   /// - lastModifiedBy: User ID of who last modified (for audit trail when admin creates)
   Future<ExpenseModel> createExpense({
     required double amount,
@@ -39,6 +40,7 @@ abstract class ExpenseRemoteDataSource {
     bool isGroupExpense = true,
     ReimbursementStatus reimbursementStatus = ReimbursementStatus.none, // T048
     String? createdBy, // T014
+    String? paidBy, // For admin creating expense for specific member
     String? lastModifiedBy, // T014
   });
 

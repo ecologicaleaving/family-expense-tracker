@@ -90,6 +90,7 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
         isGroupExpense: isGroupExpense,
         reimbursementStatus: reimbursementStatus, // T048
         createdBy: createdBy, // T014
+        paidBy: paidBy, // For admin creating expense for specific member
         lastModifiedBy: lastModifiedBy, // T014
       );
 
