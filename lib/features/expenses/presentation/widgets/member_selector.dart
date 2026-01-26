@@ -38,27 +38,41 @@ class MemberSelector extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
-    // Build dropdown items from active members
-    final items = groupMembers.map((member) {
-      return DropdownMenuItem<String>(
-        value: member.userId,
+    // Build dropdown items: start with "Me stesso" (null value), then active members
+    final items = <DropdownMenuItem<String>>[
+      // First item: "Me stesso" with null value
+      const DropdownMenuItem<String>(
+        value: null,
         child: Row(
           children: [
-            const Icon(Icons.person, size: 20),
-            const SizedBox(width: 8),
-            Text(member.displayName),
+            Icon(Icons.person_outline, size: 20),
+            SizedBox(width: 8),
+            Text('Me stesso', style: TextStyle(fontStyle: FontStyle.italic)),
           ],
         ),
-      );
-    }).toList();
+      ),
+      // Then add all group members
+      ...groupMembers.map((member) {
+        return DropdownMenuItem<String>(
+          value: member.userId,
+          child: Row(
+            children: [
+              const Icon(Icons.person, size: 20),
+              const SizedBox(width: 8),
+              Text(member.displayName),
+            ],
+          ),
+        );
+      }),
+    ];
 
     return DropdownButtonFormField<String>(
       value: selectedMemberId,
       decoration: const InputDecoration(
-        labelText: 'Crea spesa per (opzionale)',
+        labelText: 'Crea spesa per',
         border: OutlineInputBorder(),
         prefixIcon: Icon(Icons.person),
-        helperText: 'Lascia vuoto per creare la spesa per te stesso',
+        helperText: 'Seleziona "Me stesso" per creare la spesa per te',
       ),
       items: items,
       onChanged: enabled ? onChanged : null,
