@@ -15,6 +15,7 @@ abstract class ExpenseRemoteDataSource {
     DateTime? endDate,
     String? categoryId,
     String? createdBy,
+    String? paidBy,
     bool? isGroupExpense,
     ReimbursementStatus? reimbursementStatus, // T048
     int? limit,
@@ -122,6 +123,7 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
     DateTime? endDate,
     String? categoryId,
     String? createdBy,
+    String? paidBy,
     bool? isGroupExpense,
     ReimbursementStatus? reimbursementStatus, // T048
     int? limit,
@@ -150,6 +152,9 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
       }
       if (createdBy != null) {
         filterQuery = filterQuery.eq('created_by', createdBy);
+      }
+      if (paidBy != null) {
+        filterQuery = filterQuery.eq('paid_by', paidBy);
       }
       if (isGroupExpense != null) {
         filterQuery = filterQuery.eq('is_group_expense', isGroupExpense);

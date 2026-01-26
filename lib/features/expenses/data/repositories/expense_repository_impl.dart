@@ -21,6 +21,7 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
     DateTime? endDate,
     String? categoryId,
     String? createdBy,
+    String? paidBy,
     bool? isGroupExpense,
     ReimbursementStatus? reimbursementStatus, // T048
     int? limit,
@@ -32,6 +33,7 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
         endDate: endDate,
         categoryId: categoryId,
         createdBy: createdBy,
+        paidBy: paidBy,
         isGroupExpense: isGroupExpense,
         reimbursementStatus: reimbursementStatus, // T048
         limit: limit,

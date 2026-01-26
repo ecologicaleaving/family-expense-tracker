@@ -82,20 +82,22 @@ final personalExpensesByCategoryProvider = FutureProvider.autoDispose
   final supabase = Supabase.instance.client;
   final (startDate, endDate) = _calculateDateRange(params.period, params.offset);
 
-  // Query spese personali
+  // Query spese personali (pagate dall'utente)
+  // Use paid_by to include expenses created by admin on behalf of user
   final personalExpenses = await supabase
       .from('expenses')
       .select('amount, category_id, expense_categories(name)')
-      .eq('created_by', params.userId)
+      .eq('paid_by', params.userId)
       .eq('is_group_expense', false)
       .gte('date', startDate.toIso8601String().split('T')[0])
       .lte('date', endDate.toIso8601String().split('T')[0]) as List;
 
-  // Query spese di gruppo (create dall'utente)
+  // Query spese di gruppo (pagate dall'utente)
+  // Use paid_by to include expenses created by admin on behalf of user
   final groupExpenses = await supabase
       .from('expenses')
       .select('amount, category_id, expense_categories(name)')
-      .eq('created_by', params.userId)
+      .eq('paid_by', params.userId)
       .eq('is_group_expense', true)
       .gte('date', startDate.toIso8601String().split('T')[0])
       .lte('date', endDate.toIso8601String().split('T')[0]) as List;

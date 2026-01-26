@@ -609,7 +609,8 @@ final recentGroupExpensesProvider = FutureProvider<List<ExpenseEntity>>((ref) as
   );
 });
 
-/// Provider for recent personal expenses (last 10 expenses created by current user)
+/// Provider for recent personal expenses (last 10 expenses paid by current user)
+/// Uses paid_by filter to include expenses created by admin on behalf of user
 final recentPersonalExpensesProvider = FutureProvider<List<ExpenseEntity>>((ref) async {
   final repository = ref.watch(expenseRepositoryProvider);
   final currentUser = Supabase.instance.client.auth.currentUser;
@@ -617,7 +618,7 @@ final recentPersonalExpensesProvider = FutureProvider<List<ExpenseEntity>>((ref)
   if (currentUser == null) return [];
 
   final result = await repository.getExpenses(
-    createdBy: currentUser.id,
+    paidBy: currentUser.id,
     isGroupExpense: false,
     limit: 10,
   );

@@ -15,11 +15,14 @@ abstract class ExpenseRepository {
   /// Get all expenses for the current user's group.
   ///
   /// Optionally filter by date range, category, expense type, and reimbursement status.
+  /// - createdBy: Filter by who created the expense
+  /// - paidBy: Filter by who paid for the expense (useful for admin-created expenses)
   Future<Either<Failure, List<ExpenseEntity>>> getExpenses({
     DateTime? startDate,
     DateTime? endDate,
     String? categoryId,
     String? createdBy,
+    String? paidBy,
     bool? isGroupExpense,
     ReimbursementStatus? reimbursementStatus, // T047
     int? limit,
