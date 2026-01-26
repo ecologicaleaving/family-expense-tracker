@@ -55,19 +55,14 @@ class MemberSelector extends ConsumerWidget {
     return DropdownButtonFormField<String>(
       value: selectedMemberId,
       decoration: const InputDecoration(
-        labelText: 'Crea spesa per',
+        labelText: 'Crea spesa per (opzionale)',
         border: OutlineInputBorder(),
         prefixIcon: Icon(Icons.person),
-        helperText: 'Seleziona il membro per cui creare la spesa',
+        helperText: 'Lascia vuoto per creare la spesa per te stesso',
       ),
       items: items,
       onChanged: enabled ? onChanged : null,
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'Seleziona un membro';
-        }
-        return null;
-      },
+      // No validator - field is optional for admins
     );
   }
 }

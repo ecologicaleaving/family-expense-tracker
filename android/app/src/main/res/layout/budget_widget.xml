@@ -29,7 +29,7 @@
             android:textColor="@color/widget_text_secondary"
             android:fontFamily="sans-serif-medium" />
 
-        <!-- Budget Amounts -->
+        <!-- Expense Total and Count Display (Feature 001) -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -37,61 +37,50 @@
             android:gravity="center_vertical"
             android:layout_marginTop="2dp">
 
+            <!-- Total Amount -->
             <TextView
-                android:id="@+id/spent_text"
+                android:id="@+id/total_amount_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="€450.00"
+                android:text="€342,50"
                 android:textSize="@dimen/widget_text_large"
                 android:textColor="@color/widget_text_primary"
                 android:fontFamily="sans-serif-medium"
                 android:maxLines="1"
                 android:ellipsize="end" />
 
+            <!-- Separator -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text=" / "
+                android:text=" • "
                 android:textSize="@dimen/widget_text_medium"
                 android:textColor="@color/widget_text_secondary"
-                android:layout_marginStart="2dp"
-                android:layout_marginEnd="2dp" />
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp" />
 
+            <!-- Expense Count -->
             <TextView
-                android:id="@+id/limit_text"
+                android:id="@+id/expense_count_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="€800"
+                android:text="12 spese"
                 android:textSize="@dimen/widget_text_medium"
                 android:textColor="@color/widget_text_secondary"
                 android:maxLines="1"
                 android:ellipsize="end" />
 
-            <TextView
-                android:id="@+id/percentage_text"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="56%"
-                android:textSize="@dimen/widget_text_small"
-                android:textColor="@color/widget_text_secondary"
-                android:gravity="end"
-                android:fontFamily="sans-serif-medium"
-                android:maxLines="1"
-                android:layout_marginStart="4dp" />
+            <!-- Error Indicator (Feature 001) -->
+            <ImageView
+                android:id="@+id/error_indicator"
+                android:layout_width="@dimen/widget_icon_size_small"
+                android:layout_height="@dimen/widget_icon_size_small"
+                android:src="@drawable/ic_error_indicator"
+                android:tint="@color/widget_error"
+                android:visibility="gone"
+                android:contentDescription="@string/error_loading_data"
+                android:layout_marginStart="8dp" />
         </LinearLayout>
-
-        <!-- Progress Bar -->
-        <ProgressBar
-            android:id="@+id/budget_progress"
-            style="?android:attr/progressBarStyleHorizontal"
-            android:layout_width="match_parent"
-            android:layout_height="@dimen/widget_progress_height"
-            android:layout_marginTop="4dp"
-            android:progress="56"
-            android:max="100"
-            android:progressTint="@color/widget_progress_normal"
-            android:progressBackgroundTint="@color/widget_progress_background" />
     </LinearLayout>
 
     <!-- Quick Action Buttons -->

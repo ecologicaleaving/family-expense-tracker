@@ -27,7 +27,18 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
     // Load group data when screen opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(groupProvider.notifier).loadCurrentGroup();
+      // Filter expenses to show only group expenses
+      ref.read(expenseListProvider.notifier).setFilterIsGroupExpense(true);
     });
+  }
+
+  @override
+  void dispose() {
+    // Clear group expense filter when leaving screen
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(expenseListProvider.notifier).setFilterIsGroupExpense(null);
+    });
+    super.dispose();
   }
 
   Future<void> _handleLeaveGroup() async {
@@ -241,7 +252,7 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
                   ),
                 ),
                 TextButton.icon(
-                  onPressed: () => context.go('/expenses'),
+                  onPressed: () => context.go('/expenses?tab=1'),
                   icon: const Icon(Icons.arrow_forward, size: 18),
                   label: const Text('Vedi tutte'),
                 ),

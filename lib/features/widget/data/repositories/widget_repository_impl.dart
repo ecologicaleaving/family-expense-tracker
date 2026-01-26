@@ -43,55 +43,41 @@ class WidgetRepositoryImpl implements WidgetRepository {
         return const Left(CacheFailure('User not in a group'));
       }
 
-      // 2. Calculate all user expenses (personal + group) for current month
+      // 2. Calculate personal expenses (created_by = userId) for current month
+      // Feature 001: Widget displays only personal expenses, not all group expenses
       final supabase = Supabase.instance.client;
       final now = DateTime.now();
       final startOfMonth = DateTime(now.year, now.month, 1);
       final endOfMonth = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
 
-      // Query all expenses created by user (both personal and group) for current month
-      final allExpensesResult = await supabase
+      // Query personal expenses created by user for current month
+      final personalExpensesResult = await supabase
           .from('expenses')
-          .select('amount')
+          .select('id, amount')
           .eq('created_by', userId)
           .gte('date', startOfMonth.toIso8601String().split('T')[0])
           .lte('date', endOfMonth.toIso8601String().split('T')[0]) as List;
 
-      // Calculate total expenses (personal + group)
-      double totalExpenses = 0.0;
-      for (final expense in allExpensesResult) {
-        totalExpenses += (expense['amount'] as num).toDouble();
+      // Calculate total amount and count of personal expenses
+      double totalAmount = 0.0;
+      int expenseCount = personalExpensesResult.length;
+
+      for (final expense in personalExpensesResult) {
+        totalAmount += (expense['amount'] as num).toDouble();
       }
 
-      // 3. Get total income from income sources
-      final incomeSourcesResult = await supabase
-          .from('income_sources')
-          .select('amount')
-          .eq('user_id', userId) as List;
-
-      // Calculate total income (amount is stored in cents)
-      double totalIncome = 0.0;
-      for (final source in incomeSourcesResult) {
-        final amountCents = source['amount'] as int;
-        totalIncome += amountCents / 100.0; // Convert cents to euros
-      }
-
-      // If no income sources, use default value to avoid division by zero
-      if (totalIncome == 0) {
-        totalIncome = 1000.0; // Default fallback
-      }
-
-      // 4. Get current theme
+      // 3. Get current theme
       final brightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
       final isDarkMode = brightness == Brightness.dark;
 
-      // 5. Build widget data entity
+      // 4. Build widget data entity with new format
       final widgetData = WidgetDataEntity(
-        spent: totalExpenses, // All expenses (personal + group)
-        limit: totalIncome, // Total income
+        totalAmount: totalAmount, // Sum of personal expenses
+        expenseCount: expenseCount, // Number of personal expenses
         month: DateFormat('MMMM yyyy', 'it').format(DateTime.now()),
         currency: '€',
         isDarkMode: isDarkMode,
+        hasError: false,
         lastUpdated: DateTime.now(),
         groupId: groupId,
         groupName: null,

@@ -47,6 +47,7 @@ class ExpenseListState {
     this.filterEndDate,
     this.filterCreatedBy,
     this.filterReimbursementStatus, // T044
+    this.filterIsGroupExpense,
   });
 
   final ExpenseListStatus status;
@@ -58,6 +59,7 @@ class ExpenseListState {
   final DateTime? filterEndDate;
   final String? filterCreatedBy;
   final ReimbursementStatus? filterReimbursementStatus; // T044
+  final bool? filterIsGroupExpense;
 
   ExpenseListState copyWith({
     ExpenseListStatus? status,
@@ -69,6 +71,7 @@ class ExpenseListState {
     DateTime? filterEndDate,
     String? filterCreatedBy,
     ReimbursementStatus? filterReimbursementStatus, // T044
+    bool? filterIsGroupExpense,
   }) {
     return ExpenseListState(
       status: status ?? this.status,
@@ -80,6 +83,7 @@ class ExpenseListState {
       filterEndDate: filterEndDate ?? this.filterEndDate,
       filterCreatedBy: filterCreatedBy ?? this.filterCreatedBy,
       filterReimbursementStatus: filterReimbursementStatus ?? this.filterReimbursementStatus, // T044
+      filterIsGroupExpense: filterIsGroupExpense ?? this.filterIsGroupExpense,
     );
   }
 
@@ -91,6 +95,7 @@ class ExpenseListState {
       filterStartDate != null ||
       filterEndDate != null ||
       filterCreatedBy != null;
+  // Note: filterIsGroupExpense is not included because it's always set by the tab
 }
 
 /// Expense list notifier
@@ -116,6 +121,7 @@ class ExpenseListNotifier extends StateNotifier<ExpenseListState> {
       categoryId: state.filterCategoryId,
       createdBy: state.filterCreatedBy,
       reimbursementStatus: state.filterReimbursementStatus, // T045, T046
+      isGroupExpense: state.filterIsGroupExpense,
       limit: _pageSize,
       offset: refresh ? 0 : state.expenses.length,
     );
@@ -175,9 +181,16 @@ class ExpenseListNotifier extends StateNotifier<ExpenseListState> {
     loadExpenses(refresh: true);
   }
 
-  /// Clear all filters
+  /// Set group expense filter
+  void setFilterIsGroupExpense(bool? isGroupExpense) {
+    state = state.copyWith(filterIsGroupExpense: isGroupExpense);
+    loadExpenses(refresh: true);
+  }
+
+  /// Clear all filters (except isGroupExpense which is set by the tab)
   void clearFilters() {
-    state = const ExpenseListState();
+    final currentIsGroupExpense = state.filterIsGroupExpense;
+    state = ExpenseListState(filterIsGroupExpense: currentIsGroupExpense);
     loadExpenses(refresh: true);
   }
 
@@ -356,6 +369,7 @@ class ExpenseFormNotifier extends StateNotifier<ExpenseFormState> {
     bool isGroupExpense = true,
     ReimbursementStatus reimbursementStatus = ReimbursementStatus.none, // T035
     String? createdBy, // T014
+    String? paidBy, // For admin creating expense for specific member
     String? lastModifiedBy, // T014
   }) async {
     state = state.copyWith(status: ExpenseFormStatus.submitting, errorMessage: null);
@@ -371,6 +385,7 @@ class ExpenseFormNotifier extends StateNotifier<ExpenseFormState> {
       isGroupExpense: isGroupExpense,
       reimbursementStatus: reimbursementStatus, // T035
       createdBy: createdBy, // T014
+      paidBy: paidBy, // Pass paid_by to repository
       lastModifiedBy: lastModifiedBy, // T014
     );
 

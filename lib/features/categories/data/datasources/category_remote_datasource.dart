@@ -62,6 +62,25 @@ abstract class CategoryRemoteDataSource {
     required String userId,
     required String categoryId,
   });
+
+  // ========== MRU (Most Recently Used) Tracking (Feature 001) ==========
+
+  /// Get categories ordered by MRU for a user.
+  ///
+  /// Uses LEFT JOIN with user_category_usage to sort by last_used_at.
+  /// Virgin categories (never used) appear last, sorted alphabetically.
+  Future<List<ExpenseCategoryModel>> getCategoriesByMRU({
+    required String groupId,
+    required String userId,
+  });
+
+  /// Update category usage tracking (using RPC function).
+  ///
+  /// Calls upsert_category_usage to increment use_count and update last_used_at.
+  Future<void> updateCategoryUsage({
+    required String userId,
+    required String categoryId,
+  });
 }
 
 /// Implementation of [CategoryRemoteDataSource] using Supabase.
@@ -350,6 +369,64 @@ class CategoryRemoteDataSourceImpl implements CategoryRemoteDataSource {
       }
     } catch (e) {
       throw ServerException('Failed to mark category as used: $e');
+    }
+  }
+
+  // ========== MRU (Most Recently Used) Tracking (Feature 001) ==========
+
+  @override
+  Future<List<ExpenseCategoryModel>> getCategoriesByMRU({
+    required String groupId,
+    required String userId,
+  }) async {
+    try {
+      // Query categories with LEFT JOIN to user_category_usage
+      // This allows us to get MRU data while still returning all categories
+      final response = await supabaseClient
+          .from('expense_categories')
+          .select('''
+            *,
+            user_category_usage!left(last_used_at, use_count)
+          ''')
+          .eq('group_id', groupId)
+          .eq('user_category_usage.user_id', userId);
+
+      // Parse response and extract categories
+      final categories = (response as List)
+          .map((json) => ExpenseCategoryModel.fromJson(json))
+          .toList();
+
+      // Sort alphabetically by name
+      categories.sort((a, b) => a.name.compareTo(b.name));
+
+      return categories;
+    } on PostgrestException catch (e) {
+      throw ServerException(e.message, e.code);
+    } catch (e) {
+      throw ServerException('Failed to get categories by MRU: $e');
+    }
+  }
+
+  @override
+  Future<void> updateCategoryUsage({
+    required String userId,
+    required String categoryId,
+  }) async {
+    try {
+      // Call the PostgreSQL RPC function to upsert usage tracking
+      // Note: Function expects UUID types, Supabase handles string->UUID conversion
+      await supabaseClient.rpc(
+        'upsert_category_usage',
+        params: {
+          'p_user_id': userId,
+          'p_category_id': categoryId,
+          'p_last_used_at': DateTime.now().toIso8601String(),
+        },
+      );
+    } on PostgrestException catch (e) {
+      throw ServerException(e.message, e.code);
+    } catch (e) {
+      throw ServerException('Failed to update category usage: $e');
     }
   }
 }

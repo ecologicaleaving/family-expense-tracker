@@ -308,6 +308,46 @@ class CategoryRepositoryImpl implements CategoryRepository {
     }
   }
 
+  // ========== MRU (Most Recently Used) Tracking (Feature 001) ==========
+
+  @override
+  Future<Either<Failure, List<ExpenseCategoryEntity>>> getCategoriesByMRU({
+    required String groupId,
+    required String userId,
+  }) async {
+    try {
+      final categories = await remoteDataSource.getCategoriesByMRU(
+        groupId: groupId,
+        userId: userId,
+      );
+      return Right(categories.map((c) => c.toEntity()).toList());
+    } on AppAuthException catch (e) {
+      return Left(AuthFailure(e.message));
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> updateCategoryUsage({
+    required String userId,
+    required String categoryId,
+  }) async {
+    try {
+      await remoteDataSource.updateCategoryUsage(
+        userId: userId,
+        categoryId: categoryId,
+      );
+      return const Right(unit);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
   /// Validate category name.
   ///
   /// Returns error message if invalid, null if valid.

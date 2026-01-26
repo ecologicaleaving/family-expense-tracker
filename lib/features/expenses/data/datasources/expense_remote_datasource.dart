@@ -214,6 +214,7 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
     bool isGroupExpense = true,
     ReimbursementStatus reimbursementStatus = ReimbursementStatus.none, // T048
     String? createdBy, // T014
+    String? paidBy, // For admin creating expense for specific member
     String? lastModifiedBy, // T014
   }) async {
     try {
@@ -227,13 +228,33 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
       // T014: Use provided createdBy or default to current user
       final effectiveCreatedBy = createdBy ?? currentUserId;
 
+      // Use paidBy if provided, otherwise use effectiveCreatedBy
+      final effectivePaidBy = paidBy ?? effectiveCreatedBy;
+
+      debugPrint('🔍 CREATE EXPENSE: effectiveCreatedBy=$effectiveCreatedBy, currentUserId=$currentUserId');
+
       // Get creator's display name
-      final profileResponse = await supabaseClient
+      debugPrint('🔍 CREATE EXPENSE: Fetching profile for user $effectiveCreatedBy');
+      final creatorProfileResponse = await supabaseClient
           .from('profiles')
           .select('display_name')
           .eq('id', effectiveCreatedBy)
           .single();
-      final displayName = profileResponse['display_name'] as String?;
+      final creatorDisplayName = creatorProfileResponse['display_name'] as String?;
+      debugPrint('🔍 CREATE EXPENSE: Creator profile found, displayName=$creatorDisplayName');
+
+      // Get paid_by user's display name (may be different from creator)
+      String? paidByDisplayName = creatorDisplayName;
+      if (effectivePaidBy != effectiveCreatedBy) {
+        debugPrint('🔍 CREATE EXPENSE: Fetching profile for paid_by user $effectivePaidBy');
+        final paidByProfileResponse = await supabaseClient
+            .from('profiles')
+            .select('display_name')
+            .eq('id', effectivePaidBy)
+            .single();
+        paidByDisplayName = paidByProfileResponse['display_name'] as String?;
+        debugPrint('🔍 CREATE EXPENSE: PaidBy profile found, displayName=$paidByDisplayName');
+      }
 
       // Get payment method ID if not provided (default to "Contanti")
       String finalPaymentMethodId = paymentMethodId ?? '';
@@ -260,15 +281,16 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
 
       // DEBUG: Log the amount being saved
       debugPrint('🔍 SAVE EXPENSE: Saving to DB amount=$amount (type: ${amount.runtimeType})');
+      debugPrint('🔍 SAVE EXPENSE: is_group_expense=$isGroupExpense, group_id=$groupId');
 
       final response = await supabaseClient
           .from('expenses')
           .insert({
             'group_id': groupId,
-            'created_by': effectiveCreatedBy, // T014: Use effective created by
-            'created_by_name': displayName ?? 'Utente',
-            'paid_by': effectiveCreatedBy, // T014: Use effective created by
-            'paid_by_name': displayName ?? 'Utente',
+            'created_by': effectiveCreatedBy, // Who created/inserted the expense
+            'created_by_name': creatorDisplayName ?? 'Utente',
+            'paid_by': effectivePaidBy, // Who paid for the expense (may be different)
+            'paid_by_name': paidByDisplayName ?? 'Utente',
             'amount': amount,
             'date': normalizedDate.toIso8601String().split('T')[0],
             'category_id': categoryId,
@@ -284,6 +306,7 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
           .single();
 
       // DEBUG: Log the response from database
+      debugPrint('🔍 SAVE EXPENSE: INSERT SUCCESS! Expense ID=${response['id']}');
       debugPrint('🔍 SAVE EXPENSE: Database returned amount=${response['amount']} (type: ${response['amount'].runtimeType})');
 
       // Extract category_name from nested object if present
@@ -296,8 +319,10 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
 
       return expenseModel;
     } on PostgrestException catch (e) {
+      debugPrint('❌ CREATE EXPENSE: PostgrestException - ${e.message} (code: ${e.code})');
       throw ServerException(e.message, e.code);
     } catch (e) {
+      debugPrint('❌ CREATE EXPENSE: Exception - ${e.toString()}');
       if (e is AppAuthException || e is GroupException) rethrow;
       throw ServerException(e.toString());
     }

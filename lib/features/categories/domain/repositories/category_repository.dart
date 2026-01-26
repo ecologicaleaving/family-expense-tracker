@@ -97,4 +97,27 @@ abstract class CategoryRepository {
     required String userId,
     required String categoryId,
   });
+
+  // ========== MRU (Most Recently Used) Tracking (Feature 001) ==========
+
+  /// Get categories ordered by MRU (Most Recently Used) for a user.
+  ///
+  /// Categories are sorted by:
+  /// 1. Most recently used first (last_used_at DESC)
+  /// 2. Virgin categories (never used) appear last, sorted alphabetically
+  ///
+  /// Used for category dropdown in manual expense entry.
+  Future<Either<Failure, List<ExpenseCategoryEntity>>> getCategoriesByMRU({
+    required String groupId,
+    required String userId,
+  });
+
+  /// Update category usage tracking when an expense is saved.
+  ///
+  /// Increments use_count and updates last_used_at timestamp.
+  /// Called after expense creation/update with a category.
+  Future<Either<Failure, Unit>> updateCategoryUsage({
+    required String userId,
+    required String categoryId,
+  });
 }

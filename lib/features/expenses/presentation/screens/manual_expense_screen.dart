@@ -333,8 +333,11 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
           : null,
       isGroupExpense: _isGroupExpense,
       reimbursementStatus: _selectedReimbursementStatus, // T035
-      createdBy: _selectedMemberIdForExpense, // T014: Use selected member if admin
-      lastModifiedBy: _selectedMemberIdForExpense != null ? currentUserId : null, // T014: Set admin as last modifier
+      // Always set created_by to current user (admin), even when creating for others
+      // This ensures the expense appears in admin's "Le mie spese" list
+      createdBy: currentUserId,
+      paidBy: _selectedMemberIdForExpense, // Set paid_by to selected member (or null = current user)
+      lastModifiedBy: currentUserId,
     );
 
     if (expense != null && mounted) {
@@ -354,6 +357,16 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
       if (mounted) {
         context.pop(); // Return to previous screen
       }
+    } else if (expense == null && mounted) {
+      // Show error if expense creation failed
+      final errorMessage = ref.read(expenseFormProvider).errorMessage;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage ?? 'Errore durante il salvataggio della spesa'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          duration: const Duration(seconds: 5),
+        ),
+      );
     }
   }
 
@@ -557,6 +570,11 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
                 onChanged: (memberId) {
                   setState(() {
                     _selectedMemberIdForExpense = memberId;
+                    // Force group expense when admin creates for another member
+                    // This ensures the expense is visible to both admin and member
+                    if (memberId != null) {
+                      _isGroupExpense = true;
+                    }
                   });
                 },
                 enabled: !formState.isSubmitting,
@@ -610,7 +628,8 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
                     _isGroupExpense = value;
                   });
                 },
-                enabled: !formState.isSubmitting,
+                // Disable toggle when admin creates for another member (must be group expense)
+                enabled: !formState.isSubmitting && _selectedMemberIdForExpense == null,
               ),
               const SizedBox(height: 8),
               Text(

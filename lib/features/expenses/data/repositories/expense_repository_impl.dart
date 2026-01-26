@@ -75,6 +75,7 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
     bool isGroupExpense = true,
     ReimbursementStatus reimbursementStatus = ReimbursementStatus.none, // T048
     String? createdBy, // T014
+    String? paidBy, // For admin creating expense for specific member
     String? lastModifiedBy, // T014
   }) async {
     try {

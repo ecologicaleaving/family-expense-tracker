@@ -64,14 +64,15 @@ class BudgetWidgetProvider : AppWidgetProvider() {
             }
 
             try {
-                // Parse JSON widget data
+                // Parse JSON widget data (Feature 001: Updated to totalAmount + expenseCount)
                 val widgetData = JSONObject(widgetDataJson)
 
-                val spent = widgetData.optDouble("spent", 0.0)
-                val limit = widgetData.optDouble("limit", 800.0)
+                val totalAmount = widgetData.optDouble("totalAmount", 0.0)
+                val expenseCount = widgetData.optInt("expenseCount", 0)
                 val month = widgetData.optString("month", "")
                 val currency = widgetData.optString("currency", "€")
                 val isDarkMode = widgetData.optBoolean("isDarkMode", false)
+                val hasError = widgetData.optBoolean("hasError", false)
                 val groupName = widgetData.optString("groupName", null)
 
                 // Parse lastUpdated from ISO8601 string to timestamp
@@ -87,22 +88,12 @@ class BudgetWidgetProvider : AppWidgetProvider() {
                     0L
                 }
 
-                // Calculate percentage
-                val percentage = if (limit > 0) (spent / limit * 100) else 0.0
-
                 // Check if data is stale (>24 hours old)
                 val now = System.currentTimeMillis()
                 val dataAge = now - lastUpdated
                 val isStale = dataAge > (24 * 60 * 60 * 1000) // 24 hours
 
-                if (isStale && lastUpdated > 0) {
-                    // Show error state: stale data
-                    println("BudgetWidgetProvider: Data is stale (${dataAge / 1000}s old)")
-                    showErrorState(context, appWidgetManager, appWidgetId, "Dati non aggiornati")
-                    return
-                }
-
-                println("BudgetWidgetProvider: Widget data loaded - spent: $spent, limit: $limit, month: $month")
+                println("BudgetWidgetProvider: Widget data loaded - totalAmount: $totalAmount, count: $expenseCount, month: $month")
 
                 // Use unified responsive layout
                 val views = RemoteViews(context.packageName, R.layout.budget_widget)
@@ -111,12 +102,12 @@ class BudgetWidgetProvider : AppWidgetProvider() {
                 updateWidgetContent(
                     context,
                     views,
-                    spent,
-                    limit,
+                    totalAmount,
+                    expenseCount,
                     month,
-                    percentage,
                     currency,
                     lastUpdated,
+                    hasError || isStale,
                     groupName
                 )
 
@@ -140,11 +131,11 @@ class BudgetWidgetProvider : AppWidgetProvider() {
         ) {
             val views = RemoteViews(context.packageName, R.layout.budget_widget)
 
-            // Hide normal content and show error message
+            // Show error message (Feature 001: Updated for new layout)
             views.setTextViewText(R.id.month_text, "Errore")
-            views.setTextViewText(R.id.spent_text, errorMessage)
-            views.setTextViewText(R.id.percentage_text, "")
-            views.setProgressBar(R.id.budget_progress, 100, 0, false)
+            views.setTextViewText(R.id.total_amount_text, errorMessage)
+            views.setTextViewText(R.id.expense_count_text, "")
+            views.setViewVisibility(R.id.error_indicator, android.view.View.VISIBLE)
 
             // Add tap to open app
             val openAppIntent = Intent(context, MainActivity::class.java).apply {
@@ -165,30 +156,28 @@ class BudgetWidgetProvider : AppWidgetProvider() {
         private fun updateWidgetContent(
             context: Context,
             views: RemoteViews,
-            spent: Double,
-            limit: Double,
+            totalAmount: Double,
+            expenseCount: Int,
             month: String,
-            percentage: Double,
             currency: String,
             lastUpdated: Long,
+            hasError: Boolean,
             groupName: String?
         ) {
-            // Format amounts
-            val spentFormatted = "$currency%.2f".format(spent)
-            val limitFormatted = "$currency%.0f".format(limit)
-            val percentageInt = percentage.toInt()
+            // Format total amount (Feature 001: Italian number format)
+            val totalFormatted = String.format(Locale.ITALIAN, "%s%.2f", currency, totalAmount)
+
+            // Format expense count text
+            val countText = if (expenseCount == 1) "1 spesa" else "$expenseCount spese"
 
             // Update text views
             views.setTextViewText(R.id.month_text, month)
-            views.setTextViewText(R.id.percentage_text, "$percentageInt%")
-            views.setTextViewText(R.id.spent_text, spentFormatted)
-            views.setTextViewText(R.id.limit_text, limitFormatted)
+            views.setTextViewText(R.id.total_amount_text, totalFormatted)
+            views.setTextViewText(R.id.expense_count_text, countText)
 
-            // Update progress bar
-            views.setProgressBar(R.id.budget_progress, 100, percentageInt, false)
-
-            // Note: Cannot dynamically change progress bar color with RemoteViews
-            // The color is set statically in the layout XML
+            // Show/hide error indicator
+            val errorVisibility = if (hasError) android.view.View.VISIBLE else android.view.View.GONE
+            views.setViewVisibility(R.id.error_indicator, errorVisibility)
 
             // Update last updated text
             val lastUpdatedText = formatLastUpdated(lastUpdated)

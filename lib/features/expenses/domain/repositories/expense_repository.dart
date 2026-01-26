@@ -50,6 +50,7 @@ abstract class ExpenseRepository {
     bool isGroupExpense = true,
     ReimbursementStatus reimbursementStatus = ReimbursementStatus.none, // T047
     String? createdBy, // T014: Override for admin creating on behalf of member
+    String? paidBy, // For admin creating expense for specific member
     String? lastModifiedBy, // T014: Admin user ID when creating on behalf
   });
 

@@ -17,6 +17,7 @@ import '../features/scanner/presentation/screens/camera_screen.dart';
 import '../features/scanner/presentation/screens/review_scan_screen.dart';
 import '../features/expenses/presentation/screens/manual_expense_screen.dart';
 import '../features/expenses/presentation/screens/expense_list_screen.dart';
+import '../features/expenses/presentation/screens/expense_tabs_screen.dart';
 import '../features/expenses/presentation/screens/expense_detail_screen.dart';
 import '../features/expenses/presentation/screens/edit_expense_screen.dart';
 import '../features/expenses/presentation/screens/recurring_expenses_screen.dart';
@@ -174,7 +175,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.expenses,
         name: 'expenses',
-        builder: (context, state) => const ExpenseListScreen(),
+        builder: (context, state) {
+          // Get tab parameter (0 = personal, 1 = group)
+          final tabParam = state.uri.queryParameters['tab'];
+          final initialTab = int.tryParse(tabParam ?? '0') ?? 0;
+          return ExpenseTabsScreen(initialTab: initialTab);
+        },
       ),
       GoRoute(
         path: AppRoutes.addExpense,

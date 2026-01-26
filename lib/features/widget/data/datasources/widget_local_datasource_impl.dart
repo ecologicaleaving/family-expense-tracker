@@ -14,7 +14,7 @@ class WidgetLocalDataSourceImpl implements WidgetLocalDataSource {
 
   static const String _widgetDataKey = 'widget_data';
   static const String _widgetConfigKey = 'widget_config';
-  static const String _appGroupSuiteName = 'group.com.family.financetracker';
+  static const String _appGroupSuiteName = 'group.com.ecologicaleaving.fin';
 
   WidgetLocalDataSourceImpl({
     required this.sharedPreferences,
@@ -76,17 +76,21 @@ class WidgetLocalDataSourceImpl implements WidgetLocalDataSource {
   @override
   Future<void> updateNativeWidget(WidgetDataModel data) async {
     // Save each field individually for native widget access
-    await HomeWidget.saveWidgetData<double>('spent', data.spent);
-    await HomeWidget.saveWidgetData<double>('limit', data.limit);
+    // Feature 001: Updated to use totalAmount and expenseCount
+    await HomeWidget.saveWidgetData<double>('totalAmount', data.totalAmount);
+    await HomeWidget.saveWidgetData<int>('expenseCount', data.expenseCount);
     await HomeWidget.saveWidgetData<String>('month', data.month);
-    await HomeWidget.saveWidgetData<double>('percentage', data.percentage);
     await HomeWidget.saveWidgetData<String>('currency', data.currency);
     await HomeWidget.saveWidgetData<bool>('isDarkMode', data.isDarkMode);
+    await HomeWidget.saveWidgetData<bool>('hasError', data.hasError);
     await HomeWidget.saveWidgetData<int>(
       'lastUpdated',
       data.lastUpdated.millisecondsSinceEpoch,
     );
     await HomeWidget.saveWidgetData<String>('groupName', data.groupName ?? '');
+
+    // Also save JSON for Flutter-side caching
+    await HomeWidget.saveWidgetData<String>('widgetDataJson', data.toJsonString());
 
     // Trigger widget update
     await HomeWidget.updateWidget(
