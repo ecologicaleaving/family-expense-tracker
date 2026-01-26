@@ -628,7 +628,8 @@ final recentPersonalExpensesProvider = FutureProvider<List<ExpenseEntity>>((ref)
   );
 });
 
-/// Provider per spese filtrate per categoria e utente (tutte le spese della categoria)
+/// Provider per spese filtrate per categoria e utente (tutte le spese pagate dall'utente)
+/// Uses paid_by to include expenses created by admin on behalf of user
 final expensesByCategoryProvider = FutureProvider.autoDispose
     .family<List<ExpenseEntity>, ({String userId, String categoryId})>((ref, params) async {
   final repository = ref.watch(expenseRepositoryProvider);
@@ -637,7 +638,7 @@ final expensesByCategoryProvider = FutureProvider.autoDispose
   final endOfMonth = DateTime(now.year, now.month + 1, 0);
 
   final result = await repository.getExpenses(
-    createdBy: params.userId,
+    paidBy: params.userId, // Use paid_by instead of created_by
     categoryId: params.categoryId,
     // Non filtriamo per isGroupExpense - mostriamo tutte le spese della categoria
     startDate: startOfMonth,

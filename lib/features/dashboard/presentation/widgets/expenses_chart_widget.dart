@@ -50,7 +50,8 @@ final expensesByPeriodProvider = FutureProvider.autoDispose
       .lte('date', endDate.toIso8601String().split('T')[0]);
 
   if (params.isPersonalView) {
-    query = query.eq('created_by', params.userId).eq('is_group_expense', false);
+    // Use paid_by instead of created_by to include expenses created by admin on behalf of user
+    query = query.eq('paid_by', params.userId).eq('is_group_expense', false);
   } else {
     query = query.eq('group_id', params.groupId).eq('is_group_expense', true);
   }
