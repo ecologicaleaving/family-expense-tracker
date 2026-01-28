@@ -2,9 +2,11 @@ import 'dart:convert';
 import '../../domain/entities/widget_data_entity.dart';
 
 /// Serializable version of WidgetDataEntity for persistence and API communication
-/// Updated for Feature 001: Widget displays personal expense totals instead of budget limits
+/// Shows group expenses, personal expenses, and total separately
 class WidgetDataModel extends WidgetDataEntity {
   const WidgetDataModel({
+    required double groupAmount,
+    required double personalAmount,
     required double totalAmount,
     required int expenseCount,
     required String month,
@@ -15,6 +17,8 @@ class WidgetDataModel extends WidgetDataEntity {
     required String groupId,
     String? groupName,
   }) : super(
+          groupAmount: groupAmount,
+          personalAmount: personalAmount,
           totalAmount: totalAmount,
           expenseCount: expenseCount,
           month: month,
@@ -29,6 +33,8 @@ class WidgetDataModel extends WidgetDataEntity {
   /// Create model from entity
   factory WidgetDataModel.fromEntity(WidgetDataEntity entity) {
     return WidgetDataModel(
+      groupAmount: entity.groupAmount,
+      personalAmount: entity.personalAmount,
       totalAmount: entity.totalAmount,
       expenseCount: entity.expenseCount,
       month: entity.month,
@@ -44,6 +50,8 @@ class WidgetDataModel extends WidgetDataEntity {
   /// Create model from JSON
   factory WidgetDataModel.fromJson(Map<String, dynamic> json) {
     return WidgetDataModel(
+      groupAmount: (json['groupAmount'] as num).toDouble(),
+      personalAmount: (json['personalAmount'] as num).toDouble(),
       totalAmount: (json['totalAmount'] as num).toDouble(),
       expenseCount: json['expenseCount'] as int,
       month: json['month'] as String,
@@ -59,6 +67,8 @@ class WidgetDataModel extends WidgetDataEntity {
   /// Convert model to JSON
   Map<String, dynamic> toJson() {
     return {
+      'groupAmount': groupAmount,
+      'personalAmount': personalAmount,
       'totalAmount': totalAmount,
       'expenseCount': expenseCount,
       'month': month,

@@ -136,6 +136,7 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
       }
 
       // Build the filter query with JOIN to get category name
+      // Use * to select all existing fields (avoids errors if columns don't exist)
       var filterQuery = supabaseClient
           .from('expenses')
           .select('*, category_name:expense_categories(name)')

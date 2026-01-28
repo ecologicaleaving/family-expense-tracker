@@ -75,27 +75,61 @@ class WidgetLocalDataSourceImpl implements WidgetLocalDataSource {
 
   @override
   Future<void> updateNativeWidget(WidgetDataModel data) async {
-    // Save each field individually for native widget access
-    // Feature 001: Updated to use totalAmount and expenseCount
-    await HomeWidget.saveWidgetData<double>('totalAmount', data.totalAmount);
-    await HomeWidget.saveWidgetData<int>('expenseCount', data.expenseCount);
-    await HomeWidget.saveWidgetData<String>('month', data.month);
-    await HomeWidget.saveWidgetData<String>('currency', data.currency);
-    await HomeWidget.saveWidgetData<bool>('isDarkMode', data.isDarkMode);
-    await HomeWidget.saveWidgetData<bool>('hasError', data.hasError);
-    await HomeWidget.saveWidgetData<int>(
-      'lastUpdated',
-      data.lastUpdated.millisecondsSinceEpoch,
-    );
-    await HomeWidget.saveWidgetData<String>('groupName', data.groupName ?? '');
+    try {
+      print('WidgetLocalDataSource: Updating widget with data:');
+      print('  - groupAmount: ${data.groupAmount}');
+      print('  - personalAmount: ${data.personalAmount}');
+      print('  - totalAmount: ${data.totalAmount}');
+      print('  - expenseCount: ${data.expenseCount}');
+      print('  - month: ${data.month}');
 
-    // Also save JSON for Flutter-side caching
-    await HomeWidget.saveWidgetData<String>('widgetDataJson', data.toJsonString());
+      // Also save JSON for Flutter-side caching
+      final jsonString = data.toJsonString();
+      print('WidgetLocalDataSource: Saving JSON: $jsonString');
 
-    // Trigger widget update
-    await HomeWidget.updateWidget(
-      androidName: 'BudgetWidgetProvider',
-      iOSName: 'BudgetWidget',
-    );
+      final result = await HomeWidget.saveWidgetData<String>('widgetDataJson', jsonString);
+      print('WidgetLocalDataSource: JSON save result: $result');
+
+      // Save each field individually for native widget access
+      print('WidgetLocalDataSource: Saving individual fields...');
+      await HomeWidget.saveWidgetData<double>('groupAmount', data.groupAmount);
+      await HomeWidget.saveWidgetData<double>('personalAmount', data.personalAmount);
+      await HomeWidget.saveWidgetData<double>('totalAmount', data.totalAmount);
+      await HomeWidget.saveWidgetData<String>('expenseCount', data.expenseCount.toString());
+      await HomeWidget.saveWidgetData<String>('month', data.month);
+      await HomeWidget.saveWidgetData<String>('currency', data.currency);
+      await HomeWidget.saveWidgetData<bool>('isDarkMode', data.isDarkMode);
+      await HomeWidget.saveWidgetData<bool>('hasError', data.hasError);
+      await HomeWidget.saveWidgetData<String>(
+        'lastUpdated',
+        data.lastUpdated.millisecondsSinceEpoch.toString(),
+      );
+      await HomeWidget.saveWidgetData<String>('groupName', data.groupName ?? '');
+      print('WidgetLocalDataSource: All fields saved');
+
+      // Trigger widget update
+      print('WidgetLocalDataSource: Triggering widget update...');
+
+      if (Platform.isAndroid && platformChannel != null) {
+        // Use direct intent to update widget (bypasses flavor issue)
+        print('WidgetLocalDataSource: Using platform channel to update widget');
+        await platformChannel!.invokeMethod('updateWidget');
+        print('WidgetLocalDataSource: Widget updated via platform channel');
+      } else if (Platform.isIOS) {
+        final updateResult = await HomeWidget.updateWidget(
+          androidName: 'BudgetWidgetProvider',
+          iOSName: 'BudgetWidget',
+        );
+        print('WidgetLocalDataSource: Widget update result: $updateResult');
+      } else {
+        print('WidgetLocalDataSource: Platform channel not available, widget update skipped');
+      }
+
+      print('WidgetLocalDataSource: Widget update complete');
+    } catch (e, stackTrace) {
+      print('WidgetLocalDataSource: ERROR updating widget: $e');
+      print('WidgetLocalDataSource: Stack trace: $stackTrace');
+      rethrow;
+    }
   }
 }

@@ -360,8 +360,9 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
     ThemeData theme,
   ) {
     // Use paidBy to show who actually paid for the expense
-    final memberKey = expense.paidBy ?? expense.createdBy;
-    final paidByName = memberNames[memberKey] ?? expense.paidByName ?? 'Sconosciuto';
+    final paidByName = expense.paidByName ??
+                       (expense.paidBy != null ? memberNames[expense.paidBy!] : null) ??
+                       'Sconosciuto';
 
     return ListTile(
       leading: CircleAvatar(
@@ -513,10 +514,9 @@ class _GroupDetailsScreenState extends ConsumerState<GroupDetailsScreen> {
     // Calculate spending per member using paidBy to attribute expenses correctly
     final spendingByMember = <String, double>{};
     for (final expense in expenseListState.expenses) {
-      if (expense.isGroupExpense) {
-        final memberKey = expense.paidBy ?? expense.createdBy;
-        spendingByMember[memberKey] =
-            (spendingByMember[memberKey] ?? 0) + expense.amount;
+      if (expense.isGroupExpense && expense.paidBy != null) {
+        spendingByMember[expense.paidBy!] =
+            (spendingByMember[expense.paidBy!] ?? 0) + expense.amount;
       }
     }
 

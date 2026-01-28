@@ -24,11 +24,11 @@ class WidgetRemoteDataSourceImpl implements WidgetRemoteDataSource {
   @override
   Stream<List<Map<String, dynamic>>> subscribeToExpenseChanges(String userId) {
     // Subscribe to expenses table with realtime updates
-    // Filter by created_by to only get user's personal expenses
+    // Filter by paid_by to only get user's personal expenses
     return supabase
         .from('expenses')
         .stream(primaryKey: ['id'])
-        .eq('created_by', userId)
+        .eq('paid_by', userId)
         .order('date', ascending: false);
   }
 
@@ -41,7 +41,7 @@ class WidgetRemoteDataSourceImpl implements WidgetRemoteDataSource {
     final response = await supabase
         .from('expenses')
         .select('id, amount, date')
-        .eq('created_by', userId)
+        .eq('paid_by', userId)
         .gte('date', startOfMonth.toIso8601String().split('T')[0])
         .lte('date', endOfMonth.toIso8601String().split('T')[0]);
 

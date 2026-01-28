@@ -156,6 +156,12 @@ class ExpenseDetailScreen extends ConsumerWidget {
                         ),
                         const Divider(),
                         _DetailRow(
+                          icon: Icons.account_circle,
+                          label: 'Pagato da',
+                          value: expense.paidByName ?? 'Non specificato',
+                        ),
+                        const Divider(),
+                        _DetailRow(
                           icon: expense.isGroupExpense ? Icons.group : Icons.person_outline,
                           label: 'Tipo',
                           value: expense.isGroupExpense ? 'Spesa di gruppo' : 'Spesa personale',

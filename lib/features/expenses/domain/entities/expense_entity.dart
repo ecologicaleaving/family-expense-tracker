@@ -19,6 +19,8 @@ class ExpenseEntity extends Equatable {
     this.notes,
     this.receiptUrl,
     this.createdByName,
+    this.paidBy,
+    this.paidByName,
     this.createdAt,
     this.updatedAt,
     this.reimbursementStatus = ReimbursementStatus.none,
@@ -69,6 +71,12 @@ class ExpenseEntity extends Equatable {
 
   /// Display name of who created the expense (for display purposes)
   final String? createdByName;
+
+  /// User ID of who paid for the expense
+  final String? paidBy;
+
+  /// Display name of who paid for the expense (for display purposes)
+  final String? paidByName;
 
   /// When the expense was created
   final DateTime? createdAt;
@@ -219,6 +227,8 @@ class ExpenseEntity extends Equatable {
     String? notes,
     String? receiptUrl,
     String? createdByName,
+    String? paidBy,
+    String? paidByName,
     DateTime? createdAt,
     DateTime? updatedAt,
     ReimbursementStatus? reimbursementStatus,
@@ -242,6 +252,8 @@ class ExpenseEntity extends Equatable {
       notes: notes ?? this.notes,
       receiptUrl: receiptUrl ?? this.receiptUrl,
       createdByName: createdByName ?? this.createdByName,
+      paidBy: paidBy ?? this.paidBy,
+      paidByName: paidByName ?? this.paidByName,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       reimbursementStatus: reimbursementStatus ?? this.reimbursementStatus,
@@ -268,6 +280,8 @@ class ExpenseEntity extends Equatable {
         notes,
         receiptUrl,
         createdByName,
+        paidBy,
+        paidByName,
         createdAt,
         updatedAt,
         reimbursementStatus,

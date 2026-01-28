@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -25,7 +26,7 @@ final widgetLocalDataSourceProvider = Provider<WidgetLocalDataSource>((ref) {
   final prefs = ref.watch(sharedPreferencesProvider);
   return WidgetLocalDataSourceImpl(
     sharedPreferences: prefs,
-    platformChannel: null, // TODO: Initialize for iOS
+    platformChannel: const MethodChannel('com.ecologicaleaving.fin/widget'),
   );
 });
 

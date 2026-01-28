@@ -2,8 +2,10 @@ import 'package:equatable/equatable.dart';
 import 'package:intl/intl.dart';
 
 /// Entity representing the current state of the widget displayed on the home screen
-/// Updated for Feature 001: Widget displays personal expense totals instead of budget limits
+/// Shows group expenses, personal expenses, and total separately
 class WidgetDataEntity extends Equatable {
+  final double groupAmount;
+  final double personalAmount;
   final double totalAmount;
   final int expenseCount;
   final String month;
@@ -15,6 +17,8 @@ class WidgetDataEntity extends Equatable {
   final String? groupName;
 
   const WidgetDataEntity({
+    required this.groupAmount,
+    required this.personalAmount,
     required this.totalAmount,
     required this.expenseCount,
     required this.month,
@@ -53,6 +57,8 @@ class WidgetDataEntity extends Equatable {
 
   @override
   List<Object?> get props => [
+        groupAmount,
+        personalAmount,
         totalAmount,
         expenseCount,
         month,

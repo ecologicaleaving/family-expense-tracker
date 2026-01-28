@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../../../core/utils/date_formatter.dart';
 import '../../../../shared/widgets/reimbursement_status_badge.dart';
@@ -15,128 +16,95 @@ class ExpenseListItem extends StatelessWidget {
   final ExpenseEntity expense;
   final VoidCallback onTap;
 
+  String _formatRelativeDate(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    final targetDate = DateTime(date.year, date.month, date.day);
+
+    if (targetDate == today) {
+      return 'Oggi';
+    } else if (targetDate == yesterday) {
+      return 'Ieri';
+    } else {
+      // Formato: gg/MM
+      return DateFormat('dd/MM').format(date);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    // Prepara i valori da mostrare
+    final merchant = expense.merchant ?? '';
+    final notes = expense.notes ?? '';
+    final category = expense.categoryName ?? 'N/A';
+    final date = _formatRelativeDate(expense.date);
+    final paymentMethod = expense.paymentMethodName ?? '';
+    final paidBy = expense.isGroupExpense ? (expense.paidByName ?? '') : '';
+
+    // Lista valori per layout a due colonne
+    final List<_InfoItem> items = [];
+
+    if (merchant.isNotEmpty) items.add(_InfoItem(Icons.store, merchant));
+    items.add(_InfoItem(Icons.category, category));
+    items.add(_InfoItem(Icons.calendar_today, date));
+    if (paymentMethod.isNotEmpty) items.add(_InfoItem(Icons.payment, paymentMethod));
+    if (paidBy.isNotEmpty) items.add(_InfoItem(Icons.person, paidBy));
+    if (notes.isNotEmpty) items.add(_InfoItem(Icons.notes, notes));
+
     return InkWell(
       onTap: onTap,
       child: Card(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Amount (first line, prominent)
+              // Amount e badge su prima riga
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     expense.formattedAmount,
-                    style: theme.textTheme.headlineSmall?.copyWith(
+                    style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: theme.colorScheme.primary,
                     ),
                   ),
-                  ReimbursementStatusBadge(
-                    status: expense.reimbursementStatus,
-                    mode: ReimbursementBadgeMode.compact,
+                  Row(
+                    children: [
+                      // Tipo spesa
+                      Icon(
+                        expense.isGroupExpense ? Icons.group : Icons.lock_person,
+                        size: 16,
+                        color: theme.colorScheme.secondary,
+                      ),
+                      const SizedBox(width: 4),
+                      if (expense.hasReceipt)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 4),
+                          child: Icon(
+                            Icons.receipt_long,
+                            size: 16,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                      const SizedBox(width: 8),
+                      ReimbursementStatusBadge(
+                        status: expense.reimbursementStatus,
+                        mode: ReimbursementBadgeMode.compact,
+                      ),
+                    ],
                   ),
                 ],
               ),
               const SizedBox(height: 8),
-              const Divider(height: 1),
-              const SizedBox(height: 8),
 
-              // Negozio (Merchant)
-              if (expense.merchant != null && expense.merchant!.isNotEmpty)
-                _buildDetailRow(
-                  context,
-                  icon: Icons.store,
-                  label: 'Negozio',
-                  value: expense.merchant!,
-                ),
-
-              // Note
-              if (expense.notes != null && expense.notes!.isNotEmpty)
-                _buildDetailRow(
-                  context,
-                  icon: Icons.notes,
-                  label: 'Note',
-                  value: expense.notes!,
-                ),
-
-              // Categoria
-              _buildDetailRow(
-                context,
-                icon: Icons.category,
-                label: 'Categoria',
-                value: expense.categoryName ?? 'N/A',
-              ),
-
-              // Data
-              _buildDetailRow(
-                context,
-                icon: Icons.calendar_today,
-                label: 'Data',
-                value: DateFormatter.formatRelativeDate(expense.date),
-              ),
-
-              // Tipo metodo (Payment method)
-              if (expense.paymentMethodName != null)
-                _buildDetailRow(
-                  context,
-                  icon: Icons.payment,
-                  label: 'Metodo',
-                  value: expense.paymentMethodName!,
-                ),
-
-              // Pagato da (Paid by) - Only for group expenses
-              if (expense.isGroupExpense && expense.paidByName != null)
-                _buildDetailRow(
-                  context,
-                  icon: Icons.person,
-                  label: 'Pagato da',
-                  value: expense.paidByName!,
-                  highlight: true,
-                ),
-
-              // Expense type indicator with icons
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  Icon(
-                    expense.isGroupExpense ? Icons.group : Icons.lock_person,
-                    size: 16,
-                    color: theme.colorScheme.secondary,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    expense.isGroupExpense ? 'Spesa di gruppo' : 'Spesa personale',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.secondary,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  if (expense.hasReceipt) ...[
-                    const SizedBox(width: 12),
-                    Icon(
-                      Icons.receipt_long,
-                      size: 16,
-                      color: theme.colorScheme.primary,
-                    ),
-                  ],
-                  if (expense.isRecurringExpense) ...[
-                    const SizedBox(width: 12),
-                    Icon(
-                      Icons.loop,
-                      size: 16,
-                      color: theme.colorScheme.tertiary,
-                    ),
-                  ],
-                ],
-              ),
+              // Layout a due colonne
+              _buildTwoColumnLayout(theme, items),
             ],
           ),
         ),
@@ -144,54 +112,68 @@ class ExpenseListItem extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailRow(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required String value,
-    bool highlight = false,
-  }) {
-    final theme = Theme.of(context);
+  Widget _buildTwoColumnLayout(ThemeData theme, List<_InfoItem> items) {
+    final rows = <Widget>[];
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            icon,
-            size: 18,
-            color: highlight
-                ? theme.colorScheme.primary
-                : theme.colorScheme.onSurfaceVariant,
+    for (int i = 0; i < items.length; i += 2) {
+      final leftItem = items[i];
+      final rightItem = i + 1 < items.length ? items[i + 1] : null;
+
+      rows.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Row(
+            children: [
+              // Colonna sinistra
+              Expanded(
+                child: _buildInfoCell(theme, leftItem),
+              ),
+              const SizedBox(width: 12),
+              // Colonna destra
+              Expanded(
+                child: rightItem != null
+                    ? _buildInfoCell(theme, rightItem)
+                    : const SizedBox(),
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                    fontSize: 11,
-                  ),
-                ),
-                Text(
-                  value,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: highlight ? FontWeight.w600 : FontWeight.normal,
-                    color: highlight
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.onSurface,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+        ),
+      );
+    }
+
+    return Column(
+      children: rows,
     );
   }
+
+  Widget _buildInfoCell(ThemeData theme, _InfoItem item) {
+    return Row(
+      children: [
+        Icon(
+          item.icon,
+          size: 15,
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            item.value,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontSize: 13,
+            ),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _InfoItem {
+  final IconData icon;
+  final String value;
+
+  _InfoItem(this.icon, this.value);
 }
 

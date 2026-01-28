@@ -43,7 +43,7 @@ class BudgetWidgetProvider : AppWidgetProvider() {
     }
 
     companion object {
-        private const val SHARED_PREFS = "FlutterSharedPreferences"
+        private const val SHARED_PREFS = "HomeWidgetPreferences"
 
         internal fun updateAppWidget(
             context: Context,
@@ -51,10 +51,27 @@ class BudgetWidgetProvider : AppWidgetProvider() {
             appWidgetId: Int
         ) {
             // Get widget data from shared preferences
+            println("BudgetWidgetProvider: Looking for SharedPreferences files...")
+
+            // List all available SharedPreferences files
+            val prefsDir = java.io.File(context.applicationInfo.dataDir, "shared_prefs")
+            if (prefsDir.exists()) {
+                println("BudgetWidgetProvider: Available SharedPreferences files:")
+                prefsDir.listFiles()?.forEach { file ->
+                    println("  - ${file.name}")
+                }
+            }
+
             val prefs = context.getSharedPreferences(SHARED_PREFS, Context.MODE_PRIVATE)
 
-            // Check if widget data exists - now looking for JSON object
-            val widgetDataJson = prefs.getString("flutter.widget_data", null)
+            // Debug: Print all keys in SharedPreferences
+            println("BudgetWidgetProvider: All keys in '$SHARED_PREFS':")
+            prefs.all.keys.forEach { key ->
+                println("  - $key = ${prefs.all[key]}")
+            }
+
+            // Check if widget data exists - HomeWidget saves without "flutter." prefix
+            val widgetDataJson = prefs.getString("widgetDataJson", null)
 
             if (widgetDataJson == null) {
                 // Show error state: no data configured
@@ -64,9 +81,12 @@ class BudgetWidgetProvider : AppWidgetProvider() {
             }
 
             try {
-                // Parse JSON widget data (Feature 001: Updated to totalAmount + expenseCount)
+                // Parse JSON widget data (group/personal/total)
+                println("BudgetWidgetProvider: Raw JSON = $widgetDataJson")
                 val widgetData = JSONObject(widgetDataJson)
 
+                val groupAmount = widgetData.optDouble("groupAmount", 0.0)
+                val personalAmount = widgetData.optDouble("personalAmount", 0.0)
                 val totalAmount = widgetData.optDouble("totalAmount", 0.0)
                 val expenseCount = widgetData.optInt("expenseCount", 0)
                 val month = widgetData.optString("month", "")
@@ -74,6 +94,8 @@ class BudgetWidgetProvider : AppWidgetProvider() {
                 val isDarkMode = widgetData.optBoolean("isDarkMode", false)
                 val hasError = widgetData.optBoolean("hasError", false)
                 val groupName = widgetData.optString("groupName", null)
+
+                println("BudgetWidgetProvider: Parsed - group=$groupAmount, personal=$personalAmount, total=$totalAmount, count=$expenseCount")
 
                 // Parse lastUpdated from ISO8601 string to timestamp
                 val lastUpdatedString = widgetData.optString("lastUpdated", "")
@@ -102,6 +124,8 @@ class BudgetWidgetProvider : AppWidgetProvider() {
                 updateWidgetContent(
                     context,
                     views,
+                    groupAmount,
+                    personalAmount,
                     totalAmount,
                     expenseCount,
                     month,
@@ -131,9 +155,11 @@ class BudgetWidgetProvider : AppWidgetProvider() {
         ) {
             val views = RemoteViews(context.packageName, R.layout.budget_widget)
 
-            // Show error message (Feature 001: Updated for new layout)
+            // Show error message
             views.setTextViewText(R.id.month_text, "Errore")
-            views.setTextViewText(R.id.total_amount_text, errorMessage)
+            views.setTextViewText(R.id.group_amount_text, "Gruppo: €0,00")
+            views.setTextViewText(R.id.personal_amount_text, "Personali: €0,00")
+            views.setTextViewText(R.id.total_amount_text, "Totale: $errorMessage")
             views.setTextViewText(R.id.expense_count_text, "")
             views.setViewVisibility(R.id.error_indicator, android.view.View.VISIBLE)
 
@@ -156,6 +182,8 @@ class BudgetWidgetProvider : AppWidgetProvider() {
         private fun updateWidgetContent(
             context: Context,
             views: RemoteViews,
+            groupAmount: Double,
+            personalAmount: Double,
             totalAmount: Double,
             expenseCount: Int,
             month: String,
@@ -164,14 +192,18 @@ class BudgetWidgetProvider : AppWidgetProvider() {
             hasError: Boolean,
             groupName: String?
         ) {
-            // Format total amount (Feature 001: Italian number format)
-            val totalFormatted = String.format(Locale.ITALIAN, "%s%.2f", currency, totalAmount)
+            // Format amounts (Italian number format)
+            val groupFormatted = String.format(Locale.ITALIAN, "Gruppo: %s%.2f", currency, groupAmount)
+            val personalFormatted = String.format(Locale.ITALIAN, "Personali: %s%.2f", currency, personalAmount)
+            val totalFormatted = String.format(Locale.ITALIAN, "Totale: %s%.2f", currency, totalAmount)
 
             // Format expense count text
             val countText = if (expenseCount == 1) "1 spesa" else "$expenseCount spese"
 
             // Update text views
             views.setTextViewText(R.id.month_text, month)
+            views.setTextViewText(R.id.group_amount_text, groupFormatted)
+            views.setTextViewText(R.id.personal_amount_text, personalFormatted)
             views.setTextViewText(R.id.total_amount_text, totalFormatted)
             views.setTextViewText(R.id.expense_count_text, countText)
 

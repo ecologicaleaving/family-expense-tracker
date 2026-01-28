@@ -43,37 +43,52 @@ class WidgetRepositoryImpl implements WidgetRepository {
         return const Left(CacheFailure('User not in a group'));
       }
 
-      // 2. Calculate personal expenses (created_by = userId) for current month
-      // Feature 001: Widget displays only personal expenses, not all group expenses
+      // 2. Calculate group and personal expenses separately for current month
       final supabase = Supabase.instance.client;
       final now = DateTime.now();
       final startOfMonth = DateTime(now.year, now.month, 1);
       final endOfMonth = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
 
-      // Query personal expenses created by user for current month
-      final personalExpensesResult = await supabase
+      print('Widget: Querying expenses for userId=$userId, period=${startOfMonth.toIso8601String().split('T')[0]} to ${endOfMonth.toIso8601String().split('T')[0]}');
+
+      // Query all expenses paid by user for current month
+      final allExpensesResult = await supabase
           .from('expenses')
-          .select('id, amount')
-          .eq('created_by', userId)
+          .select('id, amount, is_group_expense')
+          .eq('paid_by', userId)
           .gte('date', startOfMonth.toIso8601String().split('T')[0])
           .lte('date', endOfMonth.toIso8601String().split('T')[0]) as List;
 
-      // Calculate total amount and count of personal expenses
-      double totalAmount = 0.0;
-      int expenseCount = personalExpensesResult.length;
+      print('Widget: Found ${allExpensesResult.length} expenses');
 
-      for (final expense in personalExpensesResult) {
-        totalAmount += (expense['amount'] as num).toDouble();
+      // Calculate group and personal amounts separately
+      double groupAmount = 0.0;
+      double personalAmount = 0.0;
+      int expenseCount = allExpensesResult.length;
+
+      for (final expense in allExpensesResult) {
+        final amount = (expense['amount'] as num).toDouble();
+        final isGroupExpense = expense['is_group_expense'] as bool? ?? false;
+
+        if (isGroupExpense) {
+          groupAmount += amount;
+        } else {
+          personalAmount += amount;
+        }
       }
+
+      final totalAmount = groupAmount + personalAmount;
 
       // 3. Get current theme
       final brightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
       final isDarkMode = brightness == Brightness.dark;
 
-      // 4. Build widget data entity with new format
+      // 4. Build widget data entity with group/personal separation
       final widgetData = WidgetDataEntity(
-        totalAmount: totalAmount, // Sum of personal expenses
-        expenseCount: expenseCount, // Number of personal expenses
+        groupAmount: groupAmount,
+        personalAmount: personalAmount,
+        totalAmount: totalAmount,
+        expenseCount: expenseCount,
         month: DateFormat('MMMM yyyy', 'it').format(DateTime.now()),
         currency: '€',
         isDarkMode: isDarkMode,
