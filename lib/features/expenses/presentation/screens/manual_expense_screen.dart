@@ -344,7 +344,7 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
       await _checkAndPromptForVirginCategory();
 
       // Refresh dashboard to reflect the new expense
-      ref.read(dashboardProvider.notifier).refresh();
+      await ref.read(dashboardProvider.notifier).refresh();
 
       // Invalidate personal dashboard providers to refresh totals
       ref.invalidate(personalExpensesByCategoryProvider);
