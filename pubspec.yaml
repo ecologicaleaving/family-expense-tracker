@@ -60,6 +60,7 @@ dependencies:
 
   # UI Components
   wolt_modal_sheet: ^0.6.0
+  flutter_iconpicker: ^3.3.3
 
   # Share Intent
   receive_sharing_intent: ^1.8.0

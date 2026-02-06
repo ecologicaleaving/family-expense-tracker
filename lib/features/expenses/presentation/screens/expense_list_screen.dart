@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../domain/entities/expense_entity.dart';
 
@@ -19,10 +20,10 @@ import '../widgets/delete_confirmation_dialog.dart';
 class ExpenseListScreen extends ConsumerStatefulWidget {
   const ExpenseListScreen({
     super.key,
-    this.showGroupExpensesOnly = false,
+    this.showGroupExpensesOnly,
   });
 
-  final bool showGroupExpensesOnly;
+  final bool? showGroupExpensesOnly;
 
   @override
   ConsumerState<ExpenseListScreen> createState() => _ExpenseListScreenState();
@@ -36,16 +37,8 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
     super.initState();
     _scrollController.addListener(_onScroll);
     // Load expenses on init
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (widget.showGroupExpensesOnly) {
-        // Show all group expenses visible to all members
-        ref.read(expenseListProvider.notifier).setFilterIsGroupExpense(true);
-      } else {
-        // Show only personal expenses (is_group_expense = false)
-        // These are expenses that only the user can see
-        ref.read(expenseListProvider.notifier).setFilterIsGroupExpense(false);
-      }
-    });
+    // Note: Filter is now set by parent ExpenseTabsScreen, so we don't set it here
+    // This allows the screen to be reused without forcing a filter
   }
 
   @override
@@ -59,6 +52,33 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
         _scrollController.position.maxScrollExtent - 200) {
       ref.read(expenseListProvider.notifier).loadMore();
     }
+  }
+
+  /// Group expenses by month and year
+  Map<String, List<ExpenseEntity>> _groupExpensesByMonth(List<ExpenseEntity> expenses) {
+    final grouped = <String, List<ExpenseEntity>>{};
+
+    for (final expense in expenses) {
+      final date = expense.date;
+      final key = DateFormat('yyyy-MM').format(date);
+      if (!grouped.containsKey(key)) {
+        grouped[key] = [];
+      }
+      grouped[key]!.add(expense);
+    }
+
+    // Sort keys in descending order (newest first)
+    final sortedKeys = grouped.keys.toList()..sort((a, b) => b.compareTo(a));
+
+    return Map.fromEntries(
+      sortedKeys.map((key) => MapEntry(key, grouped[key]!)),
+    );
+  }
+
+  /// Format month key for display
+  String _formatMonthHeader(String monthKey) {
+    final date = DateTime.parse('$monthKey-01');
+    return DateFormat('MMMM yyyy', 'it_IT').format(date);
   }
 
   @override
@@ -93,45 +113,107 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
     final currentUser = ref.watch(currentUserProvider);
     final isAdmin = ref.watch(isGroupAdminProvider);
 
+    // Group expenses by month
+    final groupedExpenses = _groupExpensesByMonth(listState.expenses);
+
     return RefreshIndicator(
       onRefresh: () => ref.read(expenseListProvider.notifier).refresh(),
-      child: ListView.separated(
+      child: CustomScrollView(
         controller: _scrollController,
-        padding: const EdgeInsets.only(top: 8, bottom: 88),
-        itemCount: listState.expenses.length + (listState.hasMore ? 1 : 0),
-        separatorBuilder: (context, index) => const Divider(height: 1),
-        itemBuilder: (context, index) {
-          if (index >= listState.expenses.length) {
-            return const Padding(
-              padding: EdgeInsets.all(16),
-              child: Center(child: CircularProgressIndicator()),
+        slivers: [
+          // Expenses grouped by month
+          ...groupedExpenses.entries.map((entry) {
+            final monthKey = entry.key;
+            final monthExpenses = entry.value;
+
+            return SliverMainAxisGroup(
+              slivers: [
+                // Month header
+                SliverToBoxAdapter(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    color: theme.colorScheme.surfaceContainerHighest,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.calendar_month,
+                          size: 20,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _formatMonthHeader(monthKey),
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          '${monthExpenses.length} ${monthExpenses.length == 1 ? 'spesa' : 'spese'}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                // Expenses for this month
+                SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final expense = monthExpenses[index];
+                      final canDelete = expense.canDelete(currentUser?.id ?? '', isAdmin);
+
+                      return Column(
+                        children: [
+                          Dismissible(
+                            key: Key(expense.id),
+                            direction: canDelete ? DismissDirection.endToStart : DismissDirection.none,
+                            confirmDismiss: (direction) => _showDeleteConfirmDialog(context, expense),
+                            onDismissed: (direction) => _handleSwipeDelete(expense),
+                            background: Container(
+                              alignment: Alignment.centerRight,
+                              padding: const EdgeInsets.only(right: 24),
+                              color: theme.colorScheme.error,
+                              child: Icon(
+                                Icons.delete,
+                                color: theme.colorScheme.onError,
+                                size: 28,
+                              ),
+                            ),
+                            child: ExpenseListItem(
+                              expense: expense,
+                              onTap: () => context.go('/expense/${expense.id}'),
+                            ),
+                          ),
+                          if (index < monthExpenses.length - 1)
+                            const Divider(height: 1),
+                        ],
+                      );
+                    },
+                    childCount: monthExpenses.length,
+                  ),
+                ),
+              ],
             );
-          }
+          }),
 
-          final expense = listState.expenses[index];
-          final canDelete = expense.canDelete(currentUser?.id ?? '', isAdmin);
-
-          return Dismissible(
-            key: Key(expense.id),
-            direction: canDelete ? DismissDirection.endToStart : DismissDirection.none,
-            confirmDismiss: (direction) => _showDeleteConfirmDialog(context, expense),
-            onDismissed: (direction) => _handleSwipeDelete(expense),
-            background: Container(
-              alignment: Alignment.centerRight,
-              padding: const EdgeInsets.only(right: 24),
-              color: Theme.of(context).colorScheme.error,
-              child: Icon(
-                Icons.delete,
-                color: Theme.of(context).colorScheme.onError,
-                size: 28,
+          // Loading indicator for pagination
+          if (listState.hasMore)
+            const SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: Center(child: CircularProgressIndicator()),
               ),
             ),
-            child: ExpenseListItem(
-              expense: expense,
-              onTap: () => context.go('/expense/${expense.id}'),
-            ),
-          );
-        },
+
+          // Bottom padding
+          const SliverToBoxAdapter(
+            child: SizedBox(height: 88),
+          ),
+        ],
       ),
     );
   }

@@ -639,8 +639,8 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
               ),
               const SizedBox(height: 16),
 
-              // Category selector
-              CategorySelector(
+              // Category selector (compact dropdown)
+              CategoryDropdown(
                 selectedCategoryId: _selectedCategoryId,
                 onCategorySelected: (categoryId) {
                   setState(() {

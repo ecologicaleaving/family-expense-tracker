@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/utils/date_formatter.dart';
+import '../../../../core/services/icon_matching_service.dart';
 import '../../../../shared/widgets/reimbursement_status_badge.dart';
 import '../../domain/entities/expense_entity.dart';
 
@@ -48,7 +49,12 @@ class ExpenseListItem extends StatelessWidget {
     final List<_InfoItem> items = [];
 
     if (merchant.isNotEmpty) items.add(_InfoItem(Icons.store, merchant));
-    items.add(_InfoItem(Icons.category, category));
+    items.add(_InfoItem(
+      category.isNotEmpty
+          ? IconMatchingService.getDefaultIconForCategory(category)
+          : Icons.category,
+      category,
+    ));
     items.add(_InfoItem(Icons.calendar_today, date));
     if (paymentMethod.isNotEmpty) items.add(_InfoItem(Icons.payment, paymentMethod));
     if (paidBy.isNotEmpty) items.add(_InfoItem(Icons.person, paidBy));

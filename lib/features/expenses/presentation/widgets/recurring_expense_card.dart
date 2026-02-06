@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/services/icon_matching_service.dart';
 import '../../domain/entities/recurring_expense.dart';
 
 /// Card widget for displaying a recurring expense template
@@ -87,7 +88,9 @@ class RecurringExpenseCard extends StatelessWidget {
               Row(
                 children: [
                   Icon(
-                    Icons.category_outlined,
+                    IconMatchingService.getDefaultIconForCategory(
+                      template.categoryName,
+                    ),
                     size: 16,
                     color: colorScheme.onSurfaceVariant,
                   ),

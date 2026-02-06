@@ -1,6 +1,6 @@
 Write-Host "Starting Flutter build..."
 cd C:\Users\KreshOS\Documents\00-Progetti\Fin
-flutter build apk --flavor dev --release
+flutter build apk --flavor dev --release --no-tree-shake-icons
 if ($LASTEXITCODE -eq 0) {
     Write-Host "Build successful, installing APK..."
     adb uninstall com.ecologicaleaving.fin.dev

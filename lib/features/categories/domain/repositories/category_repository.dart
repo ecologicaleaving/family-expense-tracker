@@ -30,6 +30,7 @@ abstract class CategoryRepository {
   Future<Either<Failure, ExpenseCategoryEntity>> createCategory({
     required String groupId,
     required String name,
+    String? iconName,
   });
 
   /// Update a category name.
@@ -39,6 +40,15 @@ abstract class CategoryRepository {
   Future<Either<Failure, ExpenseCategoryEntity>> updateCategory({
     required String categoryId,
     required String name,
+  });
+
+  /// Update a category's icon.
+  ///
+  /// Only administrators can update category icons.
+  /// Validates that iconName is a valid Material Icons name.
+  Future<Either<Failure, ExpenseCategoryEntity>> updateCategoryIcon({
+    required String categoryId,
+    required String iconName,
   });
 
   /// Delete a category.

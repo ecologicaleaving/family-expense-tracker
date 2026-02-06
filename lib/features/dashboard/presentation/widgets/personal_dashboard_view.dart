@@ -677,6 +677,8 @@ class _PersonalDashboardViewState extends ConsumerState<PersonalDashboardView> {
             _PersonalBarChart(
               groupId: group.id,
               userId: userId,
+              period: dashboardState.period,
+              offset: dashboardState.offset,
             ),
             const SizedBox(height: 24),
 
@@ -2078,60 +2080,36 @@ class _CategoriesSection extends ConsumerWidget {
 }
 
 /// Grafico a barre personalizzato per vista personale
-class _PersonalBarChart extends ConsumerStatefulWidget {
+class _PersonalBarChart extends ConsumerWidget {
   const _PersonalBarChart({
     required this.groupId,
     required this.userId,
+    required this.period,
+    required this.offset,
   });
 
   final String groupId;
   final String userId;
+  final DashboardPeriod period;
+  final int offset;
 
   @override
-  ConsumerState<_PersonalBarChart> createState() => _PersonalBarChartState();
-}
-
-class _PersonalBarChartState extends ConsumerState<_PersonalBarChart> {
-  ChartPeriod _selectedPeriod = ChartPeriod.week;
-  int _offset = 0;
-
-  void _changePeriod(ChartPeriod newPeriod) {
-    setState(() {
-      _selectedPeriod = newPeriod;
-      _offset = 0;
-    });
-  }
-
-  String _getPeriodLabel() {
-    final now = DateTime.now();
-
-    switch (_selectedPeriod) {
-      case ChartPeriod.week:
-        final weekDay = now.weekday;
-        final currentWeekStart = now.subtract(Duration(days: weekDay - 1));
-        final targetWeekStart = currentWeekStart.add(Duration(days: _offset * 7));
-        final targetWeekEnd = targetWeekStart.add(const Duration(days: 6));
-        return '${DateFormat('d MMM', 'it').format(targetWeekStart)} - ${DateFormat('d MMM', 'it').format(targetWeekEnd)}';
-      case ChartPeriod.month:
-        final targetMonth = now.month + _offset;
-        final targetYear = now.year + (targetMonth - 1) ~/ 12;
-        final normalizedMonth = ((targetMonth - 1) % 12) + 1;
-        final date = DateTime(targetYear, normalizedMonth);
-        return DateFormat('MMMM yyyy', 'it').format(date);
-      case ChartPeriod.year:
-        return (now.year + _offset).toString();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+
+    // Convert DashboardPeriod to ChartPeriod
+    final chartPeriod = period == DashboardPeriod.week
+        ? ChartPeriod.week
+        : period == DashboardPeriod.month
+            ? ChartPeriod.month
+            : ChartPeriod.year;
+
     final params = ExpenseChartParams(
-      groupId: widget.groupId,
-      userId: widget.userId,
-      period: _selectedPeriod,
+      groupId: groupId,
+      userId: userId,
+      period: chartPeriod,
       isPersonalView: true,
-      offset: _offset,
+      offset: offset,
     );
     final dataAsync = ref.watch(expensesByPeriodProvider(params));
 
@@ -2147,58 +2125,6 @@ class _PersonalBarChartState extends ConsumerState<_PersonalBarChart> {
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-
-        // Selector periodo
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _PeriodChip(
-              label: 'Settimana',
-              isSelected: _selectedPeriod == ChartPeriod.week,
-              onTap: () => _changePeriod(ChartPeriod.week),
-            ),
-            const SizedBox(width: 8),
-            _PeriodChip(
-              label: 'Mese',
-              isSelected: _selectedPeriod == ChartPeriod.month,
-              onTap: () => _changePeriod(ChartPeriod.month),
-            ),
-            const SizedBox(width: 8),
-            _PeriodChip(
-              label: 'Anno',
-              isSelected: _selectedPeriod == ChartPeriod.year,
-              onTap: () => _changePeriod(ChartPeriod.year),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-
-        // Navigation controls
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.chevron_left),
-              onPressed: () => setState(() => _offset--),
-              tooltip: 'Precedente',
-            ),
-            Expanded(
-              child: Text(
-                _getPeriodLabel(),
-                textAlign: TextAlign.center,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.chevron_right),
-              onPressed: _offset < 0 ? () => setState(() => _offset++) : null,
-              tooltip: 'Successivo',
             ),
           ],
         ),
@@ -2288,7 +2214,7 @@ class _PersonalBarChartState extends ConsumerState<_PersonalBarChart> {
                                 BarChartRodData(
                                   toY: entry.value['value'].toDouble(),
                                   color: AppColors.terracotta,
-                                  width: _selectedPeriod == ChartPeriod.month ? 6 : 16,
+                                  width: chartPeriod == ChartPeriod.month ? 6 : 16,
                                   borderRadius: const BorderRadius.only(
                                     topLeft: Radius.circular(4),
                                     topRight: Radius.circular(4),
@@ -2324,40 +2250,6 @@ class _PersonalBarChartState extends ConsumerState<_PersonalBarChart> {
     final maxValue = data.map((e) => e['value'] as int).reduce((a, b) => a > b ? a : b);
     if (maxValue == 0) return 100;
     return ((maxValue / 100).ceil() * 10).toDouble() * 10;
-  }
-}
-
-class _PeriodChip extends StatelessWidget {
-  const _PeriodChip({
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.terracotta : Colors.grey.shade200,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? AppColors.cream : Colors.black87,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            fontSize: 12,
-          ),
-        ),
-      ),
-    );
   }
 }
 

@@ -18,12 +18,19 @@ abstract class CategoryRemoteDataSource {
   Future<ExpenseCategoryModel> createCategory({
     required String groupId,
     required String name,
+    String? iconName,
   });
 
   /// Update a category name.
   Future<ExpenseCategoryModel> updateCategory({
     required String categoryId,
     required String name,
+  });
+
+  /// Update a category icon.
+  Future<ExpenseCategoryModel> updateCategoryIcon({
+    required String categoryId,
+    required String iconName,
   });
 
   /// Delete a category.
@@ -129,7 +136,7 @@ class CategoryRemoteDataSourceImpl implements CategoryRemoteDataSource {
     try {
       final response = await supabaseClient
           .from('expense_categories')
-          .select('*, expense_count:get_category_expense_count(category_id)')
+          .select()
           .eq('id', categoryId)
           .single();
 
@@ -145,18 +152,25 @@ class CategoryRemoteDataSourceImpl implements CategoryRemoteDataSource {
   Future<ExpenseCategoryModel> createCategory({
     required String groupId,
     required String name,
+    String? iconName,
   }) async {
     try {
       final userId = _currentUserId;
 
+      final insertData = {
+        'group_id': groupId,
+        'name': name,
+        'is_default': false,
+        'created_by': userId,
+      };
+
+      if (iconName != null) {
+        insertData['icon_name'] = iconName;
+      }
+
       final response = await supabaseClient
           .from('expense_categories')
-          .insert({
-            'group_id': groupId,
-            'name': name,
-            'is_default': false,
-            'created_by': userId,
-          })
+          .insert(insertData)
           .select()
           .single();
 
@@ -210,6 +224,36 @@ class CategoryRemoteDataSourceImpl implements CategoryRemoteDataSource {
       throw ServerException(e.message, e.code);
     } catch (e) {
       throw ServerException('Failed to update category: $e');
+    }
+  }
+
+  @override
+  Future<ExpenseCategoryModel> updateCategoryIcon({
+    required String categoryId,
+    required String iconName,
+  }) async {
+    try {
+      final response = await supabaseClient
+          .from('expense_categories')
+          .update({
+            'icon_name': iconName,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', categoryId)
+          .select()
+          .single();
+
+      return ExpenseCategoryModel.fromJson(response);
+    } on PostgrestException catch (e) {
+      // Check for permission error
+      if (e.code == '42501' || e.code == 'PGRST301') {
+        throw const PermissionException(
+          'Only administrators can update category icons',
+        );
+      }
+      throw ServerException(e.message, e.code);
+    } catch (e) {
+      throw ServerException('Failed to update category icon: $e');
     }
   }
 

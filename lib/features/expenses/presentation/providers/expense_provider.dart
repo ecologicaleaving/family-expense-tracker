@@ -187,6 +187,12 @@ class ExpenseListNotifier extends StateNotifier<ExpenseListState> {
     loadExpenses(refresh: true);
   }
 
+  /// Clear group expense filter to show all expenses
+  void clearIsGroupExpenseFilter() {
+    state = state.copyWith(filterIsGroupExpense: null);
+    loadExpenses(refresh: true);
+  }
+
   /// Clear all filters (except isGroupExpense which is set by the tab)
   void clearFilters() {
     final currentIsGroupExpense = state.filterIsGroupExpense;
