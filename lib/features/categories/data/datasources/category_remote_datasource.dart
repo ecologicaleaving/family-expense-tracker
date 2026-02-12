@@ -56,6 +56,13 @@ abstract class CategoryRemoteDataSource {
     String? excludeCategoryId,
   });
 
+  // ========== Sort Order ==========
+
+  /// Update sort order for multiple categories.
+  Future<void> updateCategorySortOrder({
+    required List<({String categoryId, int sortOrder})> updates,
+  });
+
   // ========== Virgin Category Tracking (Feature 004) ==========
 
   /// Check if a user has used a specific category (virgin detection).
@@ -117,6 +124,7 @@ class CategoryRemoteDataSourceImpl implements CategoryRemoteDataSource {
               : '*')
           .eq('group_id', groupId)
           .order('is_default', ascending: false) // Default categories first
+          .order('sort_order', ascending: true, nullsFirst: false)
           .order('name', ascending: true);
 
       final response = await query;
@@ -370,6 +378,29 @@ class CategoryRemoteDataSourceImpl implements CategoryRemoteDataSource {
       throw ServerException(e.message, e.code);
     } catch (e) {
       throw ServerException('Failed to check category name: $e');
+    }
+  }
+
+  // ========== Sort Order ==========
+
+  @override
+  Future<void> updateCategorySortOrder({
+    required List<({String categoryId, int sortOrder})> updates,
+  }) async {
+    try {
+      for (final update in updates) {
+        await supabaseClient
+            .from('expense_categories')
+            .update({
+              'sort_order': update.sortOrder,
+              'updated_at': DateTime.now().toIso8601String(),
+            })
+            .eq('id', update.categoryId);
+      }
+    } on PostgrestException catch (e) {
+      throw ServerException(e.message, e.code);
+    } catch (e) {
+      throw ServerException('Failed to update category sort order: $e');
     }
   }
 

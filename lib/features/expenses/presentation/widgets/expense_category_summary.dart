@@ -3,22 +3,77 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/services/icon_matching_service.dart';
 import '../../domain/entities/expense_entity.dart';
+import '../screens/expense_tabs_screen.dart';
 
 /// Widget showing expense summary grouped by category
 class ExpenseCategorySummary extends StatefulWidget {
   const ExpenseCategorySummary({
     super.key,
     required this.expenses,
+    required this.filter,
   });
 
   final List<ExpenseEntity> expenses;
+  final ExpenseFilter filter;
 
   @override
   State<ExpenseCategorySummary> createState() => _ExpenseCategorySummaryState();
 }
 
 class _ExpenseCategorySummaryState extends State<ExpenseCategorySummary> {
-  bool _isExpanded = true;
+  bool _isExpanded = false;
+
+  /// Get the first name for an expense's payer
+  String _getPersonName(ExpenseEntity expense) {
+    final fullName = expense.paidByName ?? expense.createdByName ?? '';
+    if (fullName.isEmpty) return 'Sconosciuto';
+    return fullName.split(' ').first;
+  }
+
+  /// Build per-person totals as a widget with proper layout
+  Widget _buildPersonTotals(ThemeData theme, NumberFormat currencyFormat, double totalAmount) {
+    // Group expenses by person
+    final personTotals = <String, double>{};
+    for (final expense in widget.expenses) {
+      final name = _getPersonName(expense);
+      personTotals[name] = (personTotals[name] ?? 0.0) + expense.amount;
+    }
+
+    // Sort by name
+    final sortedPersons = personTotals.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+
+    final textStyle = theme.textTheme.bodyMedium?.copyWith(
+      color: theme.colorScheme.primary,
+      fontWeight: FontWeight.w600,
+    );
+
+    final showTotal = sortedPersons.length > 1;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Each person on its own line
+        for (final person in sortedPersons)
+          Text(
+            '${person.key}: ${currencyFormat.format(person.value)}',
+            style: textStyle,
+          ),
+        // Total in bottom right if multiple persons
+        if (showTotal)
+          Align(
+            alignment: Alignment.centerRight,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(
+                'Tot.: ${currencyFormat.format(totalAmount)}',
+                style: textStyle,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,10 +111,14 @@ class _ExpenseCategorySummaryState extends State<ExpenseCategorySummary> {
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    Icons.pie_chart,
-                    color: theme.colorScheme.primary,
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Icon(
+                      Icons.pie_chart,
+                      color: theme.colorScheme.primary,
+                    ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -67,25 +126,22 @@ class _ExpenseCategorySummaryState extends State<ExpenseCategorySummary> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Riepilogo per Categoria',
+                          'Spesa per Categoria',
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          'Totale: ${currencyFormat.format(totalAmount)}',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                        _buildPersonTotals(theme, currencyFormat, totalAmount),
                       ],
                     ),
                   ),
-                  Icon(
-                    _isExpanded ? Icons.expand_less : Icons.expand_more,
-                    color: theme.colorScheme.onSurfaceVariant,
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Icon(
+                      _isExpanded ? Icons.expand_less : Icons.expand_more,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),

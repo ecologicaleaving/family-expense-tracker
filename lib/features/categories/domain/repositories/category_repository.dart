@@ -90,6 +90,13 @@ abstract class CategoryRepository {
     String? excludeCategoryId,
   });
 
+  // ========== Sort Order ==========
+
+  /// Update sort order for multiple categories (batch).
+  Future<Either<Failure, Unit>> updateCategorySortOrder({
+    required List<({String categoryId, int sortOrder})> updates,
+  });
+
   // ========== Virgin Category Tracking (Feature 004) ==========
 
   /// Check if a user has used a specific category (virgin detection).

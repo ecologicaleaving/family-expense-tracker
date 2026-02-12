@@ -14,6 +14,7 @@ class ExpenseCategoryModel extends ExpenseCategoryEntity {
     required super.updatedAt,
     super.expenseCount,
     super.iconName,
+    super.sortOrder,
   });
 
   /// Create an ExpenseCategoryModel from a JSON map (expense_categories table row).
@@ -28,6 +29,7 @@ class ExpenseCategoryModel extends ExpenseCategoryEntity {
       updatedAt: DateTime.parse(json['updated_at'] as String),
       expenseCount: json['expense_count'] as int?,
       iconName: json['icon_name'] as String?,
+      sortOrder: json['sort_order'] as int?,
     );
   }
 
@@ -43,6 +45,7 @@ class ExpenseCategoryModel extends ExpenseCategoryEntity {
       'updated_at': updatedAt.toIso8601String(),
       if (expenseCount != null) 'expense_count': expenseCount,
       if (iconName != null) 'icon_name': iconName,
+      if (sortOrder != null) 'sort_order': sortOrder,
     };
   }
 
@@ -58,6 +61,7 @@ class ExpenseCategoryModel extends ExpenseCategoryEntity {
       updatedAt: entity.updatedAt,
       expenseCount: entity.expenseCount,
       iconName: entity.iconName,
+      sortOrder: entity.sortOrder,
     );
   }
 
@@ -73,6 +77,7 @@ class ExpenseCategoryModel extends ExpenseCategoryEntity {
       updatedAt: updatedAt,
       expenseCount: expenseCount,
       iconName: iconName,
+      sortOrder: sortOrder,
     );
   }
 
@@ -88,6 +93,7 @@ class ExpenseCategoryModel extends ExpenseCategoryEntity {
     DateTime? updatedAt,
     int? expenseCount,
     String? iconName,
+    int? sortOrder,
   }) {
     return ExpenseCategoryModel(
       id: id ?? this.id,
@@ -99,6 +105,7 @@ class ExpenseCategoryModel extends ExpenseCategoryEntity {
       updatedAt: updatedAt ?? this.updatedAt,
       expenseCount: expenseCount ?? this.expenseCount,
       iconName: iconName ?? this.iconName,
+      sortOrder: sortOrder ?? this.sortOrder,
     );
   }
 }

@@ -141,14 +141,7 @@ class ExpenseDetailScreen extends ConsumerWidget {
                           value: DateFormatter.formatFullDate(expense.date),
                         ),
                         const Divider(),
-                        if (expense.merchant != null) ...[
-                          _DetailRow(
-                            icon: Icons.store,
-                            label: 'Negozio',
-                            value: expense.merchant!,
-                          ),
-                          const Divider(),
-                        ],
+                        // Merchant field hidden from UI
                         _DetailRow(
                           icon: Icons.person,
                           label: 'Inserito da',

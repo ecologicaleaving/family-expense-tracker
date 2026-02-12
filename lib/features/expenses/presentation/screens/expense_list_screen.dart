@@ -31,14 +31,13 @@ class ExpenseListScreen extends ConsumerStatefulWidget {
 
 class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
   final ScrollController _scrollController = ScrollController();
+  final Set<String> _expandedMonths = {};
+  bool _initialExpansionDone = false;
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    // Load expenses on init
-    // Note: Filter is now set by parent ExpenseTabsScreen, so we don't set it here
-    // This allows the screen to be reused without forcing a filter
   }
 
   @override
@@ -75,10 +74,18 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
     );
   }
 
+  /// Get current month key (yyyy-MM)
+  String get _currentMonthKey => DateFormat('yyyy-MM').format(DateTime.now());
+
   /// Format month key for display
   String _formatMonthHeader(String monthKey) {
     final date = DateTime.parse('$monthKey-01');
     return DateFormat('MMMM yyyy', 'it_IT').format(date);
+  }
+
+  /// Calculate total amount for a list of expenses
+  double _calculateTotal(List<ExpenseEntity> expenses) {
+    return expenses.fold<double>(0.0, (sum, e) => sum + e.amount);
   }
 
   @override
@@ -116,104 +123,138 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
     // Group expenses by month
     final groupedExpenses = _groupExpensesByMonth(listState.expenses);
 
+    // Set current month as expanded on first load
+    if (!_initialExpansionDone && groupedExpenses.isNotEmpty) {
+      _initialExpansionDone = true;
+      _expandedMonths.add(_currentMonthKey);
+    }
+
+    final currencyFormat = NumberFormat.currency(
+      locale: 'it_IT',
+      symbol: '\u20ac',
+      decimalDigits: 2,
+    );
+
     return RefreshIndicator(
       onRefresh: () => ref.read(expenseListProvider.notifier).refresh(),
-      child: CustomScrollView(
+      child: ListView.builder(
         controller: _scrollController,
-        slivers: [
-          // Expenses grouped by month
-          ...groupedExpenses.entries.map((entry) {
-            final monthKey = entry.key;
-            final monthExpenses = entry.value;
+        padding: const EdgeInsets.only(bottom: 88),
+        itemCount: groupedExpenses.length + (listState.hasMore ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index >= groupedExpenses.length) {
+            return const Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
 
-            return SliverMainAxisGroup(
-              slivers: [
-                // Month header
-                SliverToBoxAdapter(
+          final monthKey = groupedExpenses.keys.elementAt(index);
+          final monthExpenses = groupedExpenses[monthKey]!;
+          final monthTotal = _calculateTotal(monthExpenses);
+          final isExpanded = _expandedMonths.contains(monthKey);
+
+          return Card(
+            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              children: [
+                // Month header (always visible)
+                InkWell(
+                  onTap: () {
+                    setState(() {
+                      if (isExpanded) {
+                        _expandedMonths.remove(monthKey);
+                      } else {
+                        _expandedMonths.add(monthKey);
+                      }
+                    });
+                  },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    color: theme.colorScheme.surfaceContainerHighest,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    color: theme.colorScheme.primaryContainer,
                     child: Row(
                       children: [
                         Icon(
                           Icons.calendar_month,
                           size: 20,
-                          color: theme.colorScheme.primary,
+                          color: theme.colorScheme.onPrimaryContainer,
                         ),
                         const SizedBox(width: 8),
-                        Text(
-                          _formatMonthHeader(monthKey),
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: theme.colorScheme.primary,
+                        Expanded(
+                          child: Text(
+                            _formatMonthHeader(monthKey),
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.onPrimaryContainer,
+                            ),
                           ),
                         ),
-                        const Spacer(),
-                        Text(
-                          '${monthExpenses.length} ${monthExpenses.length == 1 ? 'spesa' : 'spese'}',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              currencyFormat.format(monthTotal),
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: theme.colorScheme.onPrimaryContainer,
+                              ),
+                            ),
+                            Text(
+                              '${monthExpenses.length} ${monthExpenses.length == 1 ? 'spesa' : 'spese'}',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.7),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(width: 8),
+                        Icon(
+                          isExpanded ? Icons.expand_less : Icons.expand_more,
+                          color: theme.colorScheme.onPrimaryContainer,
                         ),
                       ],
                     ),
                   ),
                 ),
-                // Expenses for this month
-                SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final expense = monthExpenses[index];
-                      final canDelete = expense.canDelete(currentUser?.id ?? '', isAdmin);
+                // Expense list (collapsible)
+                if (isExpanded)
+                  ...monthExpenses.asMap().entries.map((entry) {
+                    final i = entry.key;
+                    final expense = entry.value;
+                    final canDelete = expense.canDelete(currentUser?.id ?? '', isAdmin);
 
-                      return Column(
-                        children: [
-                          Dismissible(
-                            key: Key(expense.id),
-                            direction: canDelete ? DismissDirection.endToStart : DismissDirection.none,
-                            confirmDismiss: (direction) => _showDeleteConfirmDialog(context, expense),
-                            onDismissed: (direction) => _handleSwipeDelete(expense),
-                            background: Container(
-                              alignment: Alignment.centerRight,
-                              padding: const EdgeInsets.only(right: 24),
-                              color: theme.colorScheme.error,
-                              child: Icon(
-                                Icons.delete,
-                                color: theme.colorScheme.onError,
-                                size: 28,
-                              ),
-                            ),
-                            child: ExpenseListItem(
-                              expense: expense,
-                              onTap: () => context.go('/expense/${expense.id}'),
+                    return Column(
+                      children: [
+                        Dismissible(
+                          key: Key(expense.id),
+                          direction: canDelete ? DismissDirection.endToStart : DismissDirection.none,
+                          confirmDismiss: (direction) => _showDeleteConfirmDialog(context, expense),
+                          onDismissed: (direction) => _handleSwipeDelete(expense),
+                          background: Container(
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.only(right: 24),
+                            color: theme.colorScheme.error,
+                            child: Icon(
+                              Icons.delete,
+                              color: theme.colorScheme.onError,
+                              size: 28,
                             ),
                           ),
-                          if (index < monthExpenses.length - 1)
-                            const Divider(height: 1),
-                        ],
-                      );
-                    },
-                    childCount: monthExpenses.length,
-                  ),
-                ),
+                          child: ExpenseListItem(
+                            expense: expense,
+                            onTap: () => context.go('/expense/${expense.id}'),
+                          ),
+                        ),
+                        if (i < monthExpenses.length - 1)
+                          const Divider(height: 1),
+                      ],
+                    );
+                  }),
               ],
-            );
-          }),
-
-          // Loading indicator for pagination
-          if (listState.hasMore)
-            const SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.all(16),
-                child: Center(child: CircularProgressIndicator()),
-              ),
             ),
-
-          // Bottom padding
-          const SliverToBoxAdapter(
-            child: SizedBox(height: 88),
-          ),
-        ],
+          );
+        },
       ),
     );
   }

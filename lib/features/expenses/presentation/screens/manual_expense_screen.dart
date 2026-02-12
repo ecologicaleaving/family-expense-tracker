@@ -600,18 +600,6 @@ class _ManualExpenseScreenState extends ConsumerState<ManualExpenseScreen>
               ),
               const SizedBox(height: 16),
 
-              // Merchant field
-              CustomTextField(
-                controller: _merchantController,
-                label: 'Negozio',
-                hint: 'Nome del negozio (opzionale)',
-                prefixIcon: Icons.store_outlined,
-                enabled: !formState.isSubmitting,
-                validator: Validators.validateMerchant,
-                textCapitalization: TextCapitalization.words,
-              ),
-              const SizedBox(height: 16),
-
               // Expense type toggle
               Text(
                 'Tipo di spesa',

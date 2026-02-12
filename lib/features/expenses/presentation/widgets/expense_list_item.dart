@@ -38,7 +38,6 @@ class ExpenseListItem extends StatelessWidget {
     final theme = Theme.of(context);
 
     // Prepara i valori da mostrare
-    final merchant = expense.merchant ?? '';
     final notes = expense.notes ?? '';
     final category = expense.categoryName ?? 'N/A';
     final date = _formatRelativeDate(expense.date);
@@ -48,7 +47,6 @@ class ExpenseListItem extends StatelessWidget {
     // Lista valori per layout a due colonne
     final List<_InfoItem> items = [];
 
-    if (merchant.isNotEmpty) items.add(_InfoItem(Icons.store, merchant));
     items.add(_InfoItem(
       category.isNotEmpty
           ? IconMatchingService.getDefaultIconForCategory(category)
@@ -62,57 +60,54 @@ class ExpenseListItem extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      child: Card(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Amount e badge su prima riga
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    expense.formattedAmount,
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.primary,
-                    ),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: expense.isGroupExpense
+              ? theme.colorScheme.surfaceContainerHighest
+              : null,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Amount e badge su prima riga
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  expense.formattedAmount,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.primary,
                   ),
-                  Row(
-                    children: [
-                      // Tipo spesa
-                      Icon(
-                        expense.isGroupExpense ? Icons.group : Icons.lock_person,
-                        size: 16,
-                        color: theme.colorScheme.secondary,
-                      ),
-                      const SizedBox(width: 4),
-                      if (expense.hasReceipt)
-                        Padding(
-                          padding: const EdgeInsets.only(left: 4),
-                          child: Icon(
-                            Icons.receipt_long,
-                            size: 16,
-                            color: theme.colorScheme.primary,
-                          ),
+                ),
+                Row(
+                  children: [
+                    if (expense.hasReceipt)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4),
+                        child: Icon(
+                          Icons.receipt_long,
+                          size: 16,
+                          color: theme.colorScheme.primary,
                         ),
-                      const SizedBox(width: 8),
-                      ReimbursementStatusBadge(
-                        status: expense.reimbursementStatus,
-                        mode: ReimbursementBadgeMode.compact,
                       ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
+                    const SizedBox(width: 8),
+                    ReimbursementStatusBadge(
+                      status: expense.reimbursementStatus,
+                      mode: ReimbursementBadgeMode.compact,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
 
-              // Layout a due colonne
-              _buildTwoColumnLayout(theme, items),
-            ],
-          ),
+            // Layout a due colonne
+            _buildTwoColumnLayout(theme, items),
+          ],
         ),
       ),
     );

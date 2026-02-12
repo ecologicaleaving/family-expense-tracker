@@ -306,6 +306,22 @@ class CategoryRepositoryImpl implements CategoryRepository {
     }
   }
 
+  // ========== Sort Order ==========
+
+  @override
+  Future<Either<Failure, Unit>> updateCategorySortOrder({
+    required List<({String categoryId, int sortOrder})> updates,
+  }) async {
+    try {
+      await remoteDataSource.updateCategorySortOrder(updates: updates);
+      return const Right(unit);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
   // ========== Validation ==========
 
   @override

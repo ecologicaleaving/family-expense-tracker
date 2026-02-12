@@ -200,6 +200,44 @@ class CategoryNotifier extends StateNotifier<CategoryState> {
     }).toList();
   }
 
+  /// Reorder a category within its section (default or custom).
+  Future<void> reorderCategory(int oldIndex, int newIndex, {required bool isDefault}) async {
+    final categories = List<ExpenseCategoryEntity>.from(state.categories);
+    final section = isDefault
+        ? categories.where((c) => c.isDefault).toList()
+        : categories.where((c) => !c.isDefault).toList();
+
+    if (oldIndex < 0 || oldIndex >= section.length || newIndex < 0 || newIndex >= section.length) return;
+
+    final item = section.removeAt(oldIndex);
+    section.insert(newIndex, item);
+
+    // Assign sort_order values
+    final updates = <({String categoryId, int sortOrder})>[];
+    for (int i = 0; i < section.length; i++) {
+      updates.add((categoryId: section[i].id, sortOrder: i));
+    }
+
+    // Rebuild full list preserving the other section
+    final otherSection = isDefault
+        ? categories.where((c) => !c.isDefault).toList()
+        : categories.where((c) => c.isDefault).toList();
+
+    final reordered = isDefault
+        ? [...section, ...otherSection]
+        : [...otherSection, ...section];
+
+    // Update local state immediately
+    state = state.copyWith(
+      categories: reordered.asMap().entries.map((e) =>
+        e.value.copyWith(sortOrder: e.key),
+      ).toList(),
+    );
+
+    // Persist to backend
+    await _repository.updateCategorySortOrder(updates: updates);
+  }
+
   /// Subscribe to Supabase realtime for multi-device sync
   void _subscribeToRealtimeChanges() {
     _categoriesChannel = _supabaseClient

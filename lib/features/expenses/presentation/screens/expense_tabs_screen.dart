@@ -89,18 +89,21 @@ class _ExpenseTabsScreenState extends ConsumerState<ExpenseTabsScreen> {
               children: [
                 _FilterChip(
                   label: 'Tutte',
+                  filter: ExpenseFilter.all,
                   isSelected: _selectedFilter == ExpenseFilter.all,
                   onTap: () => _applyFilter(ExpenseFilter.all),
                 ),
                 const SizedBox(width: 8),
                 _FilterChip(
-                  label: 'Personali',
+                  label: 'Private',
+                  filter: ExpenseFilter.personal,
                   isSelected: _selectedFilter == ExpenseFilter.personal,
                   onTap: () => _applyFilter(ExpenseFilter.personal),
                 ),
                 const SizedBox(width: 8),
                 _FilterChip(
-                  label: 'Di Gruppo',
+                  label: 'Famiglia',
+                  filter: ExpenseFilter.group,
                   isSelected: _selectedFilter == ExpenseFilter.group,
                   onTap: () => _applyFilter(ExpenseFilter.group),
                 ),
@@ -110,7 +113,10 @@ class _ExpenseTabsScreenState extends ConsumerState<ExpenseTabsScreen> {
 
           // Category summary
           if (listState.expenses.isNotEmpty)
-            ExpenseCategorySummary(expenses: listState.expenses),
+            ExpenseCategorySummary(
+              expenses: listState.expenses,
+              filter: _selectedFilter,
+            ),
 
           // Expense list with month grouping
           const Expanded(
@@ -122,15 +128,17 @@ class _ExpenseTabsScreenState extends ConsumerState<ExpenseTabsScreen> {
   }
 }
 
-/// Filter chip widget
+/// Filter chip widget with color matching expense card types
 class _FilterChip extends StatelessWidget {
   const _FilterChip({
     required this.label,
+    required this.filter,
     required this.isSelected,
     required this.onTap,
   });
 
   final String label;
+  final ExpenseFilter filter;
   final bool isSelected;
   final VoidCallback onTap;
 
@@ -138,19 +146,27 @@ class _FilterChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    // Match card colors: group = darker, personal = lighter
+    Color chipColor;
+    if (isSelected) {
+      chipColor = theme.colorScheme.primaryContainer;
+    } else if (filter == ExpenseFilter.group) {
+      chipColor = theme.colorScheme.surfaceContainerHighest;
+    } else {
+      chipColor = theme.colorScheme.surfaceContainerLow;
+    }
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected
-              ? theme.colorScheme.primaryContainer
-              : theme.colorScheme.surfaceContainerHighest,
+          color: chipColor,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected
                 ? theme.colorScheme.primary
-                : theme.colorScheme.outline.withOpacity(0.5),
+                : theme.colorScheme.outline.withValues(alpha: 0.5),
             width: isSelected ? 2 : 1,
           ),
         ),

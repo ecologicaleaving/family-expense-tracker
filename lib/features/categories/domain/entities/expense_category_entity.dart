@@ -17,6 +17,7 @@ class ExpenseCategoryEntity extends Equatable {
     required this.updatedAt,
     this.expenseCount,
     this.iconName,
+    this.sortOrder,
   });
 
   /// Unique category identifier
@@ -46,6 +47,9 @@ class ExpenseCategoryEntity extends Equatable {
   /// Material Icons name for category display (e.g., 'shopping_cart', 'restaurant')
   /// If null, falls back to default icon matching logic
   final String? iconName;
+
+  /// Sort order for custom ordering (lower = first)
+  final int? sortOrder;
 
   /// Get the icon for this category
   /// Returns stored icon or default based on name matching
@@ -102,6 +106,7 @@ class ExpenseCategoryEntity extends Equatable {
     DateTime? updatedAt,
     int? expenseCount,
     String? iconName,
+    int? sortOrder,
   }) {
     return ExpenseCategoryEntity(
       id: id ?? this.id,
@@ -113,6 +118,7 @@ class ExpenseCategoryEntity extends Equatable {
       updatedAt: updatedAt ?? this.updatedAt,
       expenseCount: expenseCount ?? this.expenseCount,
       iconName: iconName ?? this.iconName,
+      sortOrder: sortOrder ?? this.sortOrder,
     );
   }
 
@@ -127,6 +133,7 @@ class ExpenseCategoryEntity extends Equatable {
         updatedAt,
         expenseCount,
         iconName,
+        sortOrder,
       ];
 
   @override
