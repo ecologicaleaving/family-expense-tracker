@@ -113,9 +113,12 @@ class _ExpenseTabsScreenState extends ConsumerState<ExpenseTabsScreen> {
 
           // Category summary
           if (listState.expenses.isNotEmpty)
-            ExpenseCategorySummary(
-              expenses: listState.expenses,
-              filter: _selectedFilter,
+            Flexible(
+              flex: 0,
+              child: ExpenseCategorySummary(
+                expenses: listState.expenses,
+                filter: _selectedFilter,
+              ),
             ),
 
           // Expense list with month grouping

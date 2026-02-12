@@ -30,7 +30,7 @@ class _ExpenseCategorySummaryState extends State<ExpenseCategorySummary> {
     return fullName.split(' ').first;
   }
 
-  /// Build per-person totals as a widget with proper layout
+  /// Build per-person totals for all expenses
   Widget _buildPersonTotals(ThemeData theme, NumberFormat currencyFormat, double totalAmount) {
     // Group expenses by person
     final personTotals = <String, double>{};
@@ -43,35 +43,102 @@ class _ExpenseCategorySummaryState extends State<ExpenseCategorySummary> {
     final sortedPersons = personTotals.entries.toList()
       ..sort((a, b) => a.key.compareTo(b.key));
 
-    final textStyle = theme.textTheme.bodyMedium?.copyWith(
+    final textStyle = theme.textTheme.bodySmall?.copyWith(
       color: theme.colorScheme.primary,
       fontWeight: FontWeight.w600,
+      fontSize: 11,
     );
 
     final showTotal = sortedPersons.length > 1;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    // Use Wrap for horizontal layout with automatic wrapping
+    return Wrap(
+      spacing: 8,
+      runSpacing: 2,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        // Each person on its own line
+        // Each person as a compact chip
         for (final person in sortedPersons)
           Text(
             '${person.key}: ${currencyFormat.format(person.value)}',
             style: textStyle,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
           ),
-        // Total in bottom right if multiple persons
+        // Total if multiple persons
         if (showTotal)
-          Align(
-            alignment: Alignment.centerRight,
-            child: Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: Text(
-                'Tot.: ${currencyFormat.format(totalAmount)}',
-                style: textStyle,
-              ),
+          Text(
+            '• Tot.: ${currencyFormat.format(totalAmount)}',
+            style: textStyle?.copyWith(
+              fontWeight: FontWeight.bold,
             ),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
           ),
       ],
+    );
+  }
+
+  /// Build per-person totals for a specific category
+  Widget _buildCategoryPersonTotals(
+    String categoryName,
+    ThemeData theme,
+    NumberFormat currencyFormat,
+    double categoryTotal,
+  ) {
+    // Filter expenses by category
+    final categoryExpenses = widget.expenses.where(
+      (expense) => (expense.categoryName ?? 'Altro') == categoryName,
+    ).toList();
+
+    // Group by person
+    final personTotals = <String, double>{};
+    for (final expense in categoryExpenses) {
+      final name = _getPersonName(expense);
+      personTotals[name] = (personTotals[name] ?? 0.0) + expense.amount;
+    }
+
+    // Sort by name
+    final sortedPersons = personTotals.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+
+    final textStyle = theme.textTheme.bodySmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+      fontSize: 11,
+    );
+
+    final showTotal = sortedPersons.length > 1;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Each person on its own line
+          for (final person in sortedPersons)
+            Text(
+              '${person.key}: ${currencyFormat.format(person.value)}',
+              style: textStyle,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
+          // Total if multiple persons
+          if (showTotal)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(
+                'Tot.: ${currencyFormat.format(categoryTotal)}',
+                style: textStyle?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.primary,
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -149,46 +216,74 @@ class _ExpenseCategorySummaryState extends State<ExpenseCategorySummary> {
           ),
           if (_isExpanded) ...[
             const Divider(height: 1),
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              itemCount: sortedCategories.length,
-              separatorBuilder: (context, index) => const Divider(height: 1, indent: 56),
-              itemBuilder: (context, index) {
+            ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxHeight: 350,
+              ),
+              child: ListView.separated(
+                shrinkWrap: true,
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                itemCount: sortedCategories.length,
+                separatorBuilder: (context, index) => const Divider(height: 1, indent: 16),
+                itemBuilder: (context, index) {
                 final entry = sortedCategories[index];
                 final categoryName = entry.key;
                 final amount = entry.value;
                 final percentage = totalAmount > 0 ? (amount / totalAmount) * 100 : 0.0;
 
-                return ListTile(
-                  dense: true,
-                  leading: Icon(
-                    IconMatchingService.getDefaultIconForCategory(categoryName),
-                    color: theme.colorScheme.primary,
-                    size: 20,
-                  ),
-                  title: Text(
-                    categoryName,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  subtitle: Text(
-                    '${percentage.toStringAsFixed(1)}%',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  trailing: Text(
-                    currencyFormat.format(amount),
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: theme.colorScheme.primary,
-                    ),
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Icon(
+                          IconMatchingService.getDefaultIconForCategory(categoryName),
+                          color: theme.colorScheme.primary,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    categoryName,
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '${percentage.toStringAsFixed(1)}%',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            _buildCategoryPersonTotals(
+                              categoryName,
+                              theme,
+                              currencyFormat,
+                              amount,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 );
               },
+            ),
             ),
           ],
         ],
