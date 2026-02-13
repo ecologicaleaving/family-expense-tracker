@@ -49,7 +49,8 @@ class _BudgetPromptDialogState extends State<BudgetPromptDialog> {
             const SizedBox(height: 16),
             TextFormField(
               controller: _controller,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
               ],

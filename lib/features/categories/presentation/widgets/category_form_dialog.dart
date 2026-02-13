@@ -48,7 +48,8 @@ class _CategoryFormDialogState extends ConsumerState<CategoryFormDialog> {
       final suggestedIconName = BilingualIconPicker.getSuggestedIconName(
         _nameController.text,
       );
-      final suggestedIcon = BilingualIconPicker.getIconFromName(suggestedIconName);
+      final suggestedIcon =
+          BilingualIconPicker.getIconFromName(suggestedIconName);
 
       if (suggestedIcon != null && _selectedIcon == null) {
         setState(() {
@@ -102,7 +103,8 @@ class _CategoryFormDialogState extends ConsumerState<CategoryFormDialog> {
       if (_isEditing) {
         if (_isDefaultCategory) {
           // Default category: only update icon
-          print('🔄 Updating default category icon: ${widget.categoryToEdit!.id}');
+          print(
+              '🔄 Updating default category icon: ${widget.categoryToEdit!.id}');
           print('   Name: ${widget.categoryToEdit!.name}');
           print('   Old icon: ${widget.categoryToEdit!.iconName}');
           print('   New icon: $iconName');
@@ -113,7 +115,8 @@ class _CategoryFormDialogState extends ConsumerState<CategoryFormDialog> {
               categoryId: widget.categoryToEdit!.id,
               iconName: iconName,
             );
-            print('   Icon update result: ${result != null ? "SUCCESS" : "FAILED"}');
+            print(
+                '   Icon update result: ${result != null ? "SUCCESS" : "FAILED"}');
           } else {
             // No icon change, return the existing category
             result = widget.categoryToEdit;
@@ -133,7 +136,8 @@ class _CategoryFormDialogState extends ConsumerState<CategoryFormDialog> {
             name: name,
           );
 
-          print('   Name update result: ${result != null ? "SUCCESS" : "FAILED"}');
+          print(
+              '   Name update result: ${result != null ? "SUCCESS" : "FAILED"}');
 
           // If icon changed, update it separately
           if (result != null && iconName != null) {
@@ -145,7 +149,8 @@ class _CategoryFormDialogState extends ConsumerState<CategoryFormDialog> {
                 categoryId: widget.categoryToEdit!.id,
                 iconName: iconName,
               );
-              print('   Icon update result: ${result != null ? "SUCCESS" : "FAILED"}');
+              print(
+                  '   Icon update result: ${result != null ? "SUCCESS" : "FAILED"}');
             }
           }
         }
@@ -280,7 +285,8 @@ class _CategoryFormDialogState extends ConsumerState<CategoryFormDialog> {
                           Text(
                             'Tocca per cambiare',
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                              color: theme.colorScheme.onSurfaceVariant
+                                  .withValues(alpha: 0.7),
                             ),
                           ),
                         ],
@@ -310,7 +316,8 @@ class _CategoryFormDialogState extends ConsumerState<CategoryFormDialog> {
               textCapitalization: TextCapitalization.words,
               enabled: !_isSubmitting && !_isDefaultCategory,
               validator: (value) {
-                if (_isDefaultCategory) return null; // Skip validation for default categories
+                if (_isDefaultCategory)
+                  return null; // Skip validation for default categories
                 if (value == null || value.trim().isEmpty) {
                   return 'Category name cannot be empty';
                 }

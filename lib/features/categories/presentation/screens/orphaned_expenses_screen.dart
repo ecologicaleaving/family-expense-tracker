@@ -99,7 +99,9 @@ class _OrphanedExpensesScreenState
             const SizedBox(height: 24),
             FilledButton.icon(
               onPressed: () {
-                ref.read(orphanedExpensesProvider(groupId).notifier).loadOrphanedExpenses();
+                ref
+                    .read(orphanedExpensesProvider(groupId).notifier)
+                    .loadOrphanedExpenses();
               },
               icon: const Icon(Icons.refresh),
               label: const Text('Riprova'),
@@ -163,9 +165,7 @@ class _OrphanedExpensesScreenState
             '€${expense.amount.toStringAsFixed(2)} - '
             '${_formatDate(expense.date)}',
           ),
-          trailing: _isSelectionMode
-              ? null
-              : const Icon(Icons.chevron_right),
+          trailing: _isSelectionMode ? null : const Icon(Icons.chevron_right),
           selected: isSelected,
           onLongPress: () {
             setState(() {

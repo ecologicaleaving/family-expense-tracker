@@ -207,6 +207,26 @@ class CategoryRepositoryImpl implements CategoryRepository {
   }
 
   @override
+  Future<Either<Failure, ExpenseCategoryEntity>> toggleCategoryActive({
+    required String categoryId,
+    required bool isActive,
+  }) async {
+    try {
+      final updated = await remoteDataSource.toggleCategoryActive(
+        categoryId: categoryId,
+        isActive: isActive,
+      );
+      return Right(updated.toEntity());
+    } on PermissionException catch (e) {
+      return Left(PermissionFailure(e.message));
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<Either<Failure, Unit>> deleteCategory({
     required String categoryId,
   }) async {

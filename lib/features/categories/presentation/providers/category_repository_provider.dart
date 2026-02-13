@@ -11,7 +11,8 @@ final _supabaseClientProvider = Provider<SupabaseClient>((ref) {
 });
 
 /// Provider for category remote datasource
-final categoryRemoteDataSourceProvider = Provider<CategoryRemoteDataSource>((ref) {
+final categoryRemoteDataSourceProvider =
+    Provider<CategoryRemoteDataSource>((ref) {
   return CategoryRemoteDataSourceImpl(
     supabaseClient: ref.watch(_supabaseClientProvider),
   );

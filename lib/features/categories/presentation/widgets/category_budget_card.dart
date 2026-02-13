@@ -39,7 +39,8 @@ class CategoryBudgetCard extends ConsumerStatefulWidget {
 
   // New fields for percentage support
   final bool isGroupBudget;
-  final int? groupBudgetAmount; // Group budget in cents (for percentage calculation)
+  final int?
+      groupBudgetAmount; // Group budget in cents (for percentage calculation)
   final double? initialPercentage; // Initial percentage value (0-100)
   final String? userId; // For fetching previous month percentage
   final String? groupId;
@@ -72,7 +73,8 @@ class _CategoryBudgetCardState extends ConsumerState<CategoryBudgetCard> {
     if (!widget.isGroupBudget) {
       if (widget.initialPercentage != null) {
         _isPercentageMode = true;
-        _percentageController.text = widget.initialPercentage!.toStringAsFixed(1);
+        _percentageController.text =
+            widget.initialPercentage!.toStringAsFixed(1);
         _updateEuroFromPercentage();
       } else {
         // Try to load percentage from previous month
@@ -82,8 +84,10 @@ class _CategoryBudgetCardState extends ConsumerState<CategoryBudgetCard> {
   }
 
   Future<void> _loadPreviousMonthPercentage() async {
-    if (widget.userId == null || widget.groupId == null ||
-        widget.year == null || widget.month == null) {
+    if (widget.userId == null ||
+        widget.groupId == null ||
+        widget.year == null ||
+        widget.month == null) {
       return;
     }
 
@@ -128,9 +132,11 @@ class _CategoryBudgetCardState extends ConsumerState<CategoryBudgetCard> {
       }
     }
 
-    if (widget.initialPercentage != oldWidget.initialPercentage && !_isEditing) {
+    if (widget.initialPercentage != oldWidget.initialPercentage &&
+        !_isEditing) {
       if (widget.initialPercentage != null) {
-        _percentageController.text = widget.initialPercentage!.toStringAsFixed(1);
+        _percentageController.text =
+            widget.initialPercentage!.toStringAsFixed(1);
         _updateEuroFromPercentage();
       }
     }
@@ -149,7 +155,8 @@ class _CategoryBudgetCardState extends ConsumerState<CategoryBudgetCard> {
 
     final percentage = double.tryParse(percentageStr);
     if (percentage != null && percentage >= 0 && percentage <= 100) {
-      final personalBudgetCents = (widget.groupBudgetAmount! * percentage) / 100;
+      final personalBudgetCents =
+          (widget.groupBudgetAmount! * percentage) / 100;
       final personalBudgetEuros = personalBudgetCents / 100;
       _euroController.text = personalBudgetEuros.toStringAsFixed(2);
     }
@@ -157,7 +164,9 @@ class _CategoryBudgetCardState extends ConsumerState<CategoryBudgetCard> {
 
   /// Two-way binding: Update percentage field when euro changes
   void _onEuroChanged(String euroStr) {
-    if (!_isPercentageMode || widget.groupBudgetAmount == null || widget.groupBudgetAmount == 0) {
+    if (!_isPercentageMode ||
+        widget.groupBudgetAmount == null ||
+        widget.groupBudgetAmount == 0) {
       return;
     }
 
@@ -190,7 +199,6 @@ class _CategoryBudgetCardState extends ConsumerState<CategoryBudgetCard> {
           widget.groupId != null &&
           widget.year != null &&
           widget.month != null) {
-
         final percentage = double.parse(_percentageController.text);
 
         final notifier = ref.read(
@@ -215,7 +223,8 @@ class _CategoryBudgetCardState extends ConsumerState<CategoryBudgetCard> {
             });
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Budget percentuale salvato per ${widget.categoryName}'),
+                content: Text(
+                    'Budget percentuale salvato per ${widget.categoryName}'),
                 backgroundColor: Colors.green,
               ),
             );
@@ -342,7 +351,8 @@ class _CategoryBudgetCardState extends ConsumerState<CategoryBudgetCard> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final hasBudget = widget.currentBudget != null;
-    final canUsePercentage = !widget.isGroupBudget && widget.groupBudgetAmount != null;
+    final canUsePercentage =
+        !widget.isGroupBudget && widget.groupBudgetAmount != null;
 
     return Card(
       child: Padding(
@@ -467,7 +477,8 @@ class _CategoryBudgetCardState extends ConsumerState<CategoryBudgetCard> {
                           suffixText: '%',
                           hintText: '40.0',
                           border: OutlineInputBorder(),
-                          helperText: 'Imposta la tua percentuale del budget gruppo',
+                          helperText:
+                              'Imposta la tua percentuale del budget gruppo',
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -539,7 +550,8 @@ class _CategoryBudgetCardState extends ConsumerState<CategoryBudgetCard> {
                               }
                               return null;
                             },
-                            onChanged: _isPercentageMode ? null : _onEuroChanged,
+                            onChanged:
+                                _isPercentageMode ? null : _onEuroChanged,
                             onFieldSubmitted: (_) => _saveBudget(),
                           ),
                         ),
@@ -566,10 +578,12 @@ class _CategoryBudgetCardState extends ConsumerState<CategoryBudgetCard> {
                                 setState(() {
                                   _isEditing = false;
                                   _euroController.text =
-                                      (widget.currentBudget! / 100).toStringAsFixed(2);
+                                      (widget.currentBudget! / 100)
+                                          .toStringAsFixed(2);
                                   if (widget.initialPercentage != null) {
-                                    _percentageController.text =
-                                        widget.initialPercentage!.toStringAsFixed(1);
+                                    _percentageController.text = widget
+                                        .initialPercentage!
+                                        .toStringAsFixed(1);
                                   }
                                 });
                               },
@@ -611,7 +625,8 @@ class _CategoryBudgetCardState extends ConsumerState<CategoryBudgetCard> {
                                 '${widget.initialPercentage!.toStringAsFixed(1)}%',
                                 style: const TextStyle(fontSize: 12),
                               ),
-                              backgroundColor: theme.colorScheme.secondaryContainer,
+                              backgroundColor:
+                                  theme.colorScheme.secondaryContainer,
                               visualDensity: VisualDensity.compact,
                             ),
                           ],

@@ -60,7 +60,8 @@ class CategoryDropdownMRU extends ConsumerWidget {
       );
     }
 
-    final mruState = ref.watch(categoryMRUProvider((groupId: groupId, userId: userId)));
+    final mruState =
+        ref.watch(categoryMRUProvider((groupId: groupId, userId: userId)));
 
     if (mruState.isLoading) {
       return const Center(child: CircularProgressIndicator());

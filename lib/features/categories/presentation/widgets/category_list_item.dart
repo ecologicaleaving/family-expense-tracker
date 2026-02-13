@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/expense_category_entity.dart';
 import '../providers/category_actions_provider.dart';
+import '../providers/category_provider.dart';
 import 'category_form_dialog.dart';
 
 /// List item widget for displaying a category with edit/delete actions
@@ -19,68 +20,86 @@ class CategoryListItem extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final isInactive = !category.isActive;
 
     return Card(
       margin: EdgeInsets.zero,
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: theme.colorScheme.primaryContainer,
-          child: Icon(
-            category.getIcon(),
-            color: theme.colorScheme.onPrimaryContainer,
-            size: 20,
+      color: isInactive
+          ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5)
+          : null,
+      child: Opacity(
+        opacity: isInactive ? 0.5 : 1.0,
+        child: ListTile(
+          leading: CircleAvatar(
+            backgroundColor: theme.colorScheme.primaryContainer,
+            child: Icon(
+              category.getIcon(),
+              color: theme.colorScheme.onPrimaryContainer,
+              size: 20,
+            ),
           ),
-        ),
-        title: Text(
-          category.name,
-          style: theme.textTheme.bodyLarge?.copyWith(
-            fontWeight: FontWeight.w500,
+          title: Text(
+            category.name,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              fontWeight: FontWeight.w500,
+              decoration: isInactive ? TextDecoration.lineThrough : null,
+            ),
           ),
-        ),
-        subtitle: category.expenseCount != null
-            ? Text(
-                '${category.expenseCount} expense${category.expenseCount == 1 ? '' : 's'}',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              )
-            : null,
-        trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (category.isDefault)
-                    Chip(
-                      label: const Text('Default'),
-                      visualDensity: VisualDensity.compact,
-                      side: BorderSide.none,
-                      backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                    ),
-                  Semantics(
-                    button: true,
-                    enabled: true,
-                    label: 'Edit ${category.name} category icon',
-                    child: IconButton(
-                      icon: const Icon(Icons.edit_outlined),
-                      onPressed: () => _showEditDialog(context, ref),
-                      tooltip: category.isDefault ? 'Edit icon' : 'Edit category',
-                    ),
+          subtitle: category.expenseCount != null
+              ? Text(
+                  '${category.expenseCount} expense${category.expenseCount == 1 ? '' : 's'}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
-                  if (!category.isDefault)
-                    Semantics(
-                      button: true,
-                      enabled: true,
-                      label: 'Delete ${category.name} category',
-                      child: IconButton(
-                        icon: Icon(
-                          Icons.delete_outline,
-                          color: theme.colorScheme.error,
-                        ),
-                        onPressed: () => _handleDelete(context, ref),
-                        tooltip: 'Delete category',
-                      ),
-                    ),
-                ],
+                )
+              : null,
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Toggle switch for active/inactive
+              Switch(
+                value: category.isActive,
+                onChanged: (value) {
+                  ref
+                      .read(categoryProvider(groupId).notifier)
+                      .toggleCategoryActive(category.id, value);
+                },
               ),
+              const SizedBox(width: 4),
+              if (category.isDefault)
+                Chip(
+                  label: const Text('Default'),
+                  visualDensity: VisualDensity.compact,
+                  side: BorderSide.none,
+                  backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                ),
+              Semantics(
+                button: true,
+                enabled: true,
+                label: 'Edit ${category.name} category icon',
+                child: IconButton(
+                  icon: const Icon(Icons.edit_outlined),
+                  onPressed: () => _showEditDialog(context, ref),
+                  tooltip: category.isDefault ? 'Edit icon' : 'Edit category',
+                ),
+              ),
+              if (!category.isDefault)
+                Semantics(
+                  button: true,
+                  enabled: true,
+                  label: 'Delete ${category.name} category',
+                  child: IconButton(
+                    icon: Icon(
+                      Icons.delete_outline,
+                      color: theme.colorScheme.error,
+                    ),
+                    onPressed: () => _handleDelete(context, ref),
+                    tooltip: 'Delete category',
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }

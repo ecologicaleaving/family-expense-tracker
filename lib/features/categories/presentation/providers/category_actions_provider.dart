@@ -21,8 +21,8 @@ class CategoryActions {
     final repository = _ref.read(categoryRepositoryProvider);
 
     // Auto-set icon based on name if not provided
-    final finalIconName = iconName ??
-        IconMatchingService.getDefaultIconNameForCategory(name);
+    final finalIconName =
+        iconName ?? IconMatchingService.getDefaultIconNameForCategory(name);
 
     final result = await repository.createCategory(
       groupId: groupId,
@@ -69,7 +69,8 @@ class CategoryActions {
         return null;
       },
       (category) {
-        print('   ✅ [CategoryActions] Repository returned success: ${category.name}');
+        print(
+            '   ✅ [CategoryActions] Repository returned success: ${category.name}');
         // Refresh category state
         _ref.read(categoryProvider(groupId).notifier).loadCategories();
         return category;

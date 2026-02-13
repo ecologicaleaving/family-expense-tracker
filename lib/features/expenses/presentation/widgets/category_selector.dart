@@ -36,13 +36,14 @@ class _CategorySelectorState extends ConsumerState<CategorySelector> {
     }
 
     final categoryState = ref.watch(categoryProvider(groupId));
+    final activeCategories = categoryState.activeCategories;
 
-    // Auto-select first category if none is selected
+    // Auto-select first active category if none is selected
     if (!_hasAutoSelected &&
         widget.selectedCategoryId == null &&
-        categoryState.categories.isNotEmpty) {
+        activeCategories.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        widget.onCategorySelected(categoryState.categories.first.id);
+        widget.onCategorySelected(activeCategories.first.id);
         _hasAutoSelected = true;
       });
     }
@@ -69,13 +70,13 @@ class _CategorySelectorState extends ConsumerState<CategorySelector> {
             categoryState.errorMessage!,
             style: TextStyle(color: theme.colorScheme.error),
           )
-        else if (categoryState.categories.isEmpty)
-          const Text('Nessuna categoria disponibile')
+        else if (activeCategories.isEmpty)
+          const Text('Nessuna categoria attiva disponibile')
         else
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: categoryState.categories.map((category) {
+            children: activeCategories.map((category) {
               final isSelected = category.id == widget.selectedCategoryId;
 
               return _CategoryChip(
@@ -191,7 +192,8 @@ class CategoryDropdown extends ConsumerWidget {
 
     return InkWell(
       onTap: enabled
-          ? () => _showCategoryGridDialog(context, ref, categoryState.categories)
+          ? () =>
+              _showCategoryGridDialog(context, ref, categoryState.categories)
           : null,
       borderRadius: BorderRadius.circular(12),
       child: InputDecorator(
@@ -269,7 +271,6 @@ class CategoryDropdown extends ConsumerWidget {
       ),
     );
   }
-
 }
 
 class _CategoryCard extends StatelessWidget {

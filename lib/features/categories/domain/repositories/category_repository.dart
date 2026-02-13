@@ -51,6 +51,15 @@ abstract class CategoryRepository {
     required String iconName,
   });
 
+  /// Toggle category active status.
+  ///
+  /// Only administrators can toggle category activation.
+  /// Inactive categories are hidden from selection but preserved in historical data.
+  Future<Either<Failure, ExpenseCategoryEntity>> toggleCategoryActive({
+    required String categoryId,
+    required bool isActive,
+  });
+
   /// Delete a category.
   ///
   /// Only administrators can delete categories.

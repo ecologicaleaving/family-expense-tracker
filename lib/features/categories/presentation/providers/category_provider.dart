@@ -46,6 +46,13 @@ class CategoryState {
   List<ExpenseCategoryEntity> get customCategories =>
       categories.where((c) => !c.isDefault).toList();
 
+  /// Active categories only (for expense selection)
+  List<ExpenseCategoryEntity> get activeCategories =>
+      categories.where((c) => c.isActive).toList();
+
+  /// All categories (including inactive, for management screen)
+  List<ExpenseCategoryEntity> get allCategories => categories;
+
   /// Find category by ID
   ExpenseCategoryEntity? findById(String categoryId) {
     try {
@@ -120,7 +127,9 @@ class CategoryNotifier extends StateNotifier<CategoryState> {
         },
         (categories) {
           // Successfully loaded from server - cache them for offline use
-          _cacheDataSource.cacheCategories(_groupId, categories).catchError((e) {
+          _cacheDataSource
+              .cacheCategories(_groupId, categories)
+              .catchError((e) {
             // Cache failed but still show categories
             print('Failed to cache categories: $e');
           });
@@ -200,42 +209,66 @@ class CategoryNotifier extends StateNotifier<CategoryState> {
     }).toList();
   }
 
-  /// Reorder a category within its section (default or custom).
-  Future<void> reorderCategory(int oldIndex, int newIndex, {required bool isDefault}) async {
+  /// Reorder categories in unified list (mixing default and custom).
+  Future<void> reorderCategory(int oldIndex, int newIndex) async {
     final categories = List<ExpenseCategoryEntity>.from(state.categories);
-    final section = isDefault
-        ? categories.where((c) => c.isDefault).toList()
-        : categories.where((c) => !c.isDefault).toList();
 
-    if (oldIndex < 0 || oldIndex >= section.length || newIndex < 0 || newIndex >= section.length) return;
-
-    final item = section.removeAt(oldIndex);
-    section.insert(newIndex, item);
-
-    // Assign sort_order values
-    final updates = <({String categoryId, int sortOrder})>[];
-    for (int i = 0; i < section.length; i++) {
-      updates.add((categoryId: section[i].id, sortOrder: i));
+    if (oldIndex < 0 ||
+        oldIndex >= categories.length ||
+        newIndex < 0 ||
+        newIndex >= categories.length) {
+      return;
     }
 
-    // Rebuild full list preserving the other section
-    final otherSection = isDefault
-        ? categories.where((c) => !c.isDefault).toList()
-        : categories.where((c) => c.isDefault).toList();
+    // Adjust index if moving down
+    if (newIndex > oldIndex) {
+      newIndex--;
+    }
 
-    final reordered = isDefault
-        ? [...section, ...otherSection]
-        : [...otherSection, ...section];
+    // Remove item from old position and insert at new position
+    final item = categories.removeAt(oldIndex);
+    categories.insert(newIndex, item);
 
-    // Update local state immediately
+    // Assign sort_order to ALL categories based on their new positions
+    final updates = <({String categoryId, int sortOrder})>[];
+    for (int i = 0; i < categories.length; i++) {
+      updates.add((categoryId: categories[i].id, sortOrder: i));
+    }
+
+    // Update local state immediately for smooth UI
     state = state.copyWith(
-      categories: reordered.asMap().entries.map((e) =>
-        e.value.copyWith(sortOrder: e.key),
-      ).toList(),
+      categories: categories
+          .asMap()
+          .entries
+          .map(
+            (e) => e.value.copyWith(sortOrder: e.key),
+          )
+          .toList(),
     );
 
     // Persist to backend
     await _repository.updateCategorySortOrder(updates: updates);
+  }
+
+  /// Toggle category active status.
+  Future<void> toggleCategoryActive(String categoryId, bool isActive) async {
+    final result = await _repository.toggleCategoryActive(
+      categoryId: categoryId,
+      isActive: isActive,
+    );
+
+    result.fold(
+      (failure) {
+        state = state.copyWith(errorMessage: failure.message);
+      },
+      (updatedCategory) {
+        final updatedCategories = state.categories.map((c) {
+          return c.id == categoryId ? updatedCategory : c;
+        }).toList();
+
+        state = state.copyWith(categories: updatedCategories);
+      },
+    );
   }
 
   /// Subscribe to Supabase realtime for multi-device sync
@@ -277,7 +310,8 @@ class CategoryNotifier extends StateNotifier<CategoryState> {
 }
 
 /// Provider for category state
-final categoryProvider = StateNotifierProvider.family<CategoryNotifier, CategoryState, String>(
+final categoryProvider =
+    StateNotifierProvider.family<CategoryNotifier, CategoryState, String>(
   (ref, groupId) {
     final supabaseClient = Supabase.instance.client;
     final repository = ref.watch(categoryRepositoryProvider);
@@ -377,10 +411,8 @@ class MRUCategoryNotifier extends StateNotifier<MRUCategoryState> {
 /// Provider for MRU-ordered categories
 ///
 /// Usage: categoryMRUProvider((groupId: 'xxx', userId: 'yyy'))
-final categoryMRUProvider = StateNotifierProvider.family<
-    MRUCategoryNotifier,
-    MRUCategoryState,
-    ({String groupId, String userId})>(
+final categoryMRUProvider = StateNotifierProvider.family<MRUCategoryNotifier,
+    MRUCategoryState, ({String groupId, String userId})>(
   (ref, params) {
     final repository = ref.watch(categoryRepositoryProvider);
 

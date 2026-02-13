@@ -49,6 +49,8 @@ class CategoryCacheDataSourceImpl implements CategoryCacheDataSource {
         createdBy: Value(category.createdBy),
         createdAt: category.createdAt,
         updatedAt: category.updatedAt,
+        sortOrder: Value(category.sortOrder ?? 0),
+        isActive: Value(category.isActive),
         cachedAt: now,
       );
       await _db.into(_db.cachedCategories).insert(
@@ -65,6 +67,7 @@ class CategoryCacheDataSourceImpl implements CategoryCacheDataSource {
     final cached = await (_db.select(_db.cachedCategories)
           ..where((tbl) => tbl.groupId.equals(groupId))
           ..orderBy([
+            (tbl) => OrderingTerm.asc(tbl.sortOrder),
             (tbl) => OrderingTerm.desc(tbl.isDefault),
             (tbl) => OrderingTerm.asc(tbl.name),
           ]))
@@ -79,6 +82,8 @@ class CategoryCacheDataSourceImpl implements CategoryCacheDataSource {
               createdBy: c.createdBy,
               createdAt: c.createdAt,
               updatedAt: c.updatedAt,
+              sortOrder: c.sortOrder,
+              isActive: c.isActive,
             ))
         .toList();
   }

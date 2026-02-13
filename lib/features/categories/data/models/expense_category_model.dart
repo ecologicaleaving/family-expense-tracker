@@ -15,6 +15,7 @@ class ExpenseCategoryModel extends ExpenseCategoryEntity {
     super.expenseCount,
     super.iconName,
     super.sortOrder,
+    super.isActive,
   });
 
   /// Create an ExpenseCategoryModel from a JSON map (expense_categories table row).
@@ -30,6 +31,7 @@ class ExpenseCategoryModel extends ExpenseCategoryEntity {
       expenseCount: json['expense_count'] as int?,
       iconName: json['icon_name'] as String?,
       sortOrder: json['sort_order'] as int?,
+      isActive: json['is_active'] as bool? ?? true,
     );
   }
 
@@ -46,6 +48,7 @@ class ExpenseCategoryModel extends ExpenseCategoryEntity {
       if (expenseCount != null) 'expense_count': expenseCount,
       if (iconName != null) 'icon_name': iconName,
       if (sortOrder != null) 'sort_order': sortOrder,
+      'is_active': isActive,
     };
   }
 
@@ -62,6 +65,7 @@ class ExpenseCategoryModel extends ExpenseCategoryEntity {
       expenseCount: entity.expenseCount,
       iconName: entity.iconName,
       sortOrder: entity.sortOrder,
+      isActive: entity.isActive,
     );
   }
 
@@ -78,6 +82,7 @@ class ExpenseCategoryModel extends ExpenseCategoryEntity {
       expenseCount: expenseCount,
       iconName: iconName,
       sortOrder: sortOrder,
+      isActive: isActive,
     );
   }
 
@@ -94,6 +99,7 @@ class ExpenseCategoryModel extends ExpenseCategoryEntity {
     int? expenseCount,
     String? iconName,
     int? sortOrder,
+    bool? isActive,
   }) {
     return ExpenseCategoryModel(
       id: id ?? this.id,
@@ -106,6 +112,7 @@ class ExpenseCategoryModel extends ExpenseCategoryEntity {
       expenseCount: expenseCount ?? this.expenseCount,
       iconName: iconName ?? this.iconName,
       sortOrder: sortOrder ?? this.sortOrder,
+      isActive: isActive ?? this.isActive,
     );
   }
 }

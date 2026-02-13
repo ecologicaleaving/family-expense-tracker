@@ -19,7 +19,8 @@ class BudgetManagementScreen extends ConsumerStatefulWidget {
   const BudgetManagementScreen({super.key});
 
   @override
-  ConsumerState<BudgetManagementScreen> createState() => _BudgetManagementScreenState();
+  ConsumerState<BudgetManagementScreen> createState() =>
+      _BudgetManagementScreenState();
 }
 
 class _BudgetManagementScreenState extends ConsumerState<BudgetManagementScreen>
@@ -266,9 +267,9 @@ class _BudgetManagementScreenState extends ConsumerState<BudgetManagementScreen>
                     Text(
                       isGroupBudget
                           ? 'Imposta un budget mensile per ogni categoria di spese di gruppo. '
-                            'Il budget si applica solo alle spese condivise con la famiglia.'
+                              'Il budget si applica solo alle spese condivise con la famiglia.'
                           : 'Imposta un budget mensile per ogni categoria di spese personali. '
-                            'Il budget si applica solo alle tue spese personali.',
+                              'Il budget si applica solo alle tue spese personali.',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.onSecondaryContainer,
                       ),
@@ -302,9 +303,10 @@ class _BudgetManagementScreenState extends ConsumerState<BudgetManagementScreen>
         final userId = !isGroupBudget ? ref.watch(currentUserIdProvider) : null;
 
         // Extract percentage if budget is percentage type
-        final percentageValue = budget != null && budget['budget_type'] == 'PERCENTAGE'
-            ? (budget['percentage_of_group'] as num?)?.toDouble()
-            : null;
+        final percentageValue =
+            budget != null && budget['budget_type'] == 'PERCENTAGE'
+                ? (budget['percentage_of_group'] as num?)?.toDouble()
+                : null;
 
         return Column(
           children: [
@@ -358,7 +360,8 @@ class _BudgetManagementScreenState extends ConsumerState<BudgetManagementScreen>
                     )).notifier,
                   );
 
-                  return await budgetNotifier.deleteBudget(budget['id'] as String);
+                  return await budgetNotifier
+                      .deleteBudget(budget['id'] as String);
                 },
               ),
             ),

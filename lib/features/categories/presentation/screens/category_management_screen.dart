@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../domain/entities/expense_category_entity.dart';
 import '../../../groups/presentation/providers/group_provider.dart';
 import '../providers/category_provider.dart';
 import '../widgets/category_form_dialog.dart';
@@ -27,7 +28,8 @@ class CategoryManagementScreen extends ConsumerWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                      const Icon(Icons.error_outline,
+                          size: 48, color: Colors.red),
                       const SizedBox(height: 16),
                       Text(
                         categoryState.errorMessage!,
@@ -37,7 +39,9 @@ class CategoryManagementScreen extends ConsumerWidget {
                       const SizedBox(height: 16),
                       ElevatedButton.icon(
                         onPressed: () {
-                          ref.read(categoryProvider(groupId).notifier).loadCategories();
+                          ref
+                              .read(categoryProvider(groupId).notifier)
+                              .loadCategories();
                         },
                         icon: const Icon(Icons.refresh),
                         label: const Text('Retry'),
@@ -45,7 +49,8 @@ class CategoryManagementScreen extends ConsumerWidget {
                     ],
                   ),
                 )
-              : _CategoryListBody(groupId: groupId, categoryState: categoryState),
+              : _CategoryListBody(
+                  groupId: groupId, categoryState: categoryState),
       floatingActionButton: categoryState.isLoading
           ? null
           : FloatingActionButton.extended(
@@ -56,7 +61,8 @@ class CategoryManagementScreen extends ConsumerWidget {
     );
   }
 
-  void _showAddCategoryDialog(BuildContext context, WidgetRef ref, String groupId) {
+  void _showAddCategoryDialog(
+      BuildContext context, WidgetRef ref, String groupId) {
     showDialog(
       context: context,
       builder: (context) => CategoryFormDialog(groupId: groupId),
@@ -76,70 +82,31 @@ class _CategoryListBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final defaultCategories = categoryState.defaultCategories;
-    final customCategories = categoryState.customCategories;
+    final allCategories = categoryState.allCategories;
 
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        // Default categories section with drag & drop
-        if (defaultCategories.isNotEmpty) ...[
-          Text(
-            'Default Categories',
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+        // Header
+        Text(
+          'Categorie',
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Tieni premuto e trascina per riordinare.',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 16),
-          _ReorderableCategoryList(
-            categories: defaultCategories,
-            groupId: groupId,
-            isDefault: true,
-          ),
-          const SizedBox(height: 24),
-        ],
-
-        // Custom categories section
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Custom Categories',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            FilledButton.icon(
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => CategoryFormDialog(groupId: groupId),
-                );
-              },
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Add'),
-            ),
-          ],
         ),
         const SizedBox(height: 8),
         Text(
-          customCategories.isEmpty
-              ? 'No custom categories yet. Create your own to better organize your expenses.'
-              : 'Tieni premuto e trascina per riordinare.',
+          allCategories.isEmpty
+              ? 'Nessuna categoria disponibile.'
+              : 'Tieni premuto e trascina per riordinare. Usa l\'interruttore per attivare/disattivare.',
           style: theme.textTheme.bodyMedium?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: 16),
 
-        if (customCategories.isEmpty)
+        // Empty state
+        if (allCategories.isEmpty)
           Card(
             child: Padding(
               padding: const EdgeInsets.all(24),
@@ -151,13 +118,10 @@ class _CategoryListBody extends ConsumerWidget {
                     color: theme.colorScheme.primary.withValues(alpha: 0.5),
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    'Create your first category',
-                    style: theme.textTheme.titleMedium,
-                  ),
+                  Text('Nessuna categoria', style: theme.textTheme.titleMedium),
                   const SizedBox(height: 8),
                   Text(
-                    'Add custom categories like "Pet care", "Education", or "Subscriptions"',
+                    'Crea la tua prima categoria per organizzare le spese.',
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
@@ -168,29 +132,26 @@ class _CategoryListBody extends ConsumerWidget {
             ),
           )
         else
-          _ReorderableCategoryList(
-            categories: customCategories,
+          // Unified list
+          _UnifiedReorderableCategoryList(
+            categories: allCategories,
             groupId: groupId,
-            isDefault: false,
           ),
 
-        // Bottom padding for FAB
         const SizedBox(height: 88),
       ],
     );
   }
 }
 
-class _ReorderableCategoryList extends ConsumerWidget {
-  const _ReorderableCategoryList({
+class _UnifiedReorderableCategoryList extends ConsumerWidget {
+  const _UnifiedReorderableCategoryList({
     required this.categories,
     required this.groupId,
-    required this.isDefault,
   });
 
-  final List categories;
+  final List<ExpenseCategoryEntity> categories;
   final String groupId;
-  final bool isDefault;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -202,11 +163,9 @@ class _ReorderableCategoryList extends ConsumerWidget {
       buildDefaultDragHandles: false,
       itemCount: categories.length,
       onReorder: (oldIndex, newIndex) {
-        if (newIndex > oldIndex) newIndex--;
         ref.read(categoryProvider(groupId).notifier).reorderCategory(
               oldIndex,
               newIndex,
-              isDefault: isDefault,
             );
       },
       proxyDecorator: (child, index, animation) {
@@ -226,7 +185,8 @@ class _ReorderableCategoryList extends ConsumerWidget {
               ReorderableDragStartListener(
                 index: index,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
                   child: Icon(
                     Icons.drag_handle,
                     color: theme.colorScheme.onSurfaceVariant,

@@ -18,6 +18,7 @@ class ExpenseCategoryEntity extends Equatable {
     this.expenseCount,
     this.iconName,
     this.sortOrder,
+    this.isActive = true,
   });
 
   /// Unique category identifier
@@ -50,6 +51,9 @@ class ExpenseCategoryEntity extends Equatable {
 
   /// Sort order for custom ordering (lower = first)
   final int? sortOrder;
+
+  /// Whether the category is active and available for new expenses
+  final bool isActive;
 
   /// Get the icon for this category
   /// Returns stored icon or default based on name matching
@@ -86,6 +90,7 @@ class ExpenseCategoryEntity extends Equatable {
       isDefault: false,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
+      isActive: true,
     );
   }
 
@@ -107,6 +112,7 @@ class ExpenseCategoryEntity extends Equatable {
     int? expenseCount,
     String? iconName,
     int? sortOrder,
+    bool? isActive,
   }) {
     return ExpenseCategoryEntity(
       id: id ?? this.id,
@@ -119,6 +125,7 @@ class ExpenseCategoryEntity extends Equatable {
       expenseCount: expenseCount ?? this.expenseCount,
       iconName: iconName ?? this.iconName,
       sortOrder: sortOrder ?? this.sortOrder,
+      isActive: isActive ?? this.isActive,
     );
   }
 
@@ -134,6 +141,7 @@ class ExpenseCategoryEntity extends Equatable {
         expenseCount,
         iconName,
         sortOrder,
+        isActive,
       ];
 
   @override

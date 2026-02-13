@@ -33,6 +33,12 @@ abstract class CategoryRemoteDataSource {
     required String iconName,
   });
 
+  /// Toggle category active status.
+  Future<ExpenseCategoryModel> toggleCategoryActive({
+    required String categoryId,
+    required bool isActive,
+  });
+
   /// Delete a category.
   Future<void> deleteCategory({required String categoryId});
 
@@ -106,7 +112,8 @@ class CategoryRemoteDataSourceImpl implements CategoryRemoteDataSource {
   String get _currentUserId {
     final userId = supabaseClient.auth.currentUser?.id;
     if (userId == null) {
-      throw const AppAuthException('No authenticated user', 'not_authenticated');
+      throw const AppAuthException(
+          'No authenticated user', 'not_authenticated');
     }
     return userId;
   }
@@ -123,7 +130,6 @@ class CategoryRemoteDataSourceImpl implements CategoryRemoteDataSource {
               ? '*, expense_count:get_category_expense_count(category_id)'
               : '*')
           .eq('group_id', groupId)
-          .order('is_default', ascending: false) // Default categories first
           .order('sort_order', ascending: true, nullsFirst: false)
           .order('name', ascending: true);
 
@@ -210,7 +216,8 @@ class CategoryRemoteDataSourceImpl implements CategoryRemoteDataSource {
     try {
       final response = await supabaseClient
           .from('expense_categories')
-          .update({'name': name, 'updated_at': DateTime.now().toIso8601String()})
+          .update(
+              {'name': name, 'updated_at': DateTime.now().toIso8601String()})
           .eq('id', categoryId)
           .select()
           .single();
@@ -262,6 +269,35 @@ class CategoryRemoteDataSourceImpl implements CategoryRemoteDataSource {
       throw ServerException(e.message, e.code);
     } catch (e) {
       throw ServerException('Failed to update category icon: $e');
+    }
+  }
+
+  @override
+  Future<ExpenseCategoryModel> toggleCategoryActive({
+    required String categoryId,
+    required bool isActive,
+  }) async {
+    try {
+      final response = await supabaseClient
+          .from('expense_categories')
+          .update({
+            'is_active': isActive,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', categoryId)
+          .select()
+          .single();
+
+      return ExpenseCategoryModel.fromJson(response);
+    } on PostgrestException catch (e) {
+      if (e.code == '42501' || e.code == 'PGRST301') {
+        throw const PermissionException(
+          'Only administrators can toggle category activation',
+        );
+      }
+      throw ServerException(e.message, e.code);
+    } catch (e) {
+      throw ServerException('Failed to toggle category active status: $e');
     }
   }
 
@@ -389,13 +425,10 @@ class CategoryRemoteDataSourceImpl implements CategoryRemoteDataSource {
   }) async {
     try {
       for (final update in updates) {
-        await supabaseClient
-            .from('expense_categories')
-            .update({
-              'sort_order': update.sortOrder,
-              'updated_at': DateTime.now().toIso8601String(),
-            })
-            .eq('id', update.categoryId);
+        await supabaseClient.from('expense_categories').update({
+          'sort_order': update.sortOrder,
+          'updated_at': DateTime.now().toIso8601String(),
+        }).eq('id', update.categoryId);
       }
     } on PostgrestException catch (e) {
       throw ServerException(e.message, e.code);
