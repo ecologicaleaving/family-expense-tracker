@@ -45,59 +45,72 @@ class CategoryListItem extends ConsumerWidget {
               decoration: isInactive ? TextDecoration.lineThrough : null,
             ),
           ),
-          subtitle: category.expenseCount != null
+          subtitle: category.expenseCount != null || category.isDefault
               ? Text(
-                  '${category.expenseCount} expense${category.expenseCount == 1 ? '' : 's'}',
+                  [
+                    if (category.expenseCount != null)
+                      '${category.expenseCount} expense${category.expenseCount == 1 ? '' : 's'}',
+                    if (category.isDefault) 'Default',
+                  ].join(' • '),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                 )
               : null,
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Toggle switch for active/inactive
-              Switch(
-                value: category.isActive,
-                onChanged: (value) {
-                  ref
-                      .read(categoryProvider(groupId).notifier)
-                      .toggleCategoryActive(category.id, value);
-                },
-              ),
-              const SizedBox(width: 4),
-              if (category.isDefault)
-                Chip(
-                  label: const Text('Default'),
-                  visualDensity: VisualDensity.compact,
-                  side: BorderSide.none,
-                  backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                ),
-              Semantics(
-                button: true,
-                enabled: true,
-                label: 'Edit ${category.name} category icon',
-                child: IconButton(
-                  icon: const Icon(Icons.edit_outlined),
-                  onPressed: () => _showEditDialog(context, ref),
-                  tooltip: category.isDefault ? 'Edit icon' : 'Edit category',
-                ),
-              ),
-              if (!category.isDefault)
-                Semantics(
-                  button: true,
-                  enabled: true,
-                  label: 'Delete ${category.name} category',
-                  child: IconButton(
-                    icon: Icon(
-                      Icons.delete_outline,
-                      color: theme.colorScheme.error,
+          trailing: SizedBox(
+            width: 110,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Eye icon for visibility toggle
+                InkWell(
+                  onTap: () {
+                    ref
+                        .read(categoryProvider(groupId).notifier)
+                        .toggleCategoryActive(category.id, !category.isActive);
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Icon(
+                      category.isActive
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                      size: 18,
+                      color: category.isActive
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.onSurfaceVariant
+                              .withValues(alpha: 0.5),
                     ),
-                    onPressed: () => _handleDelete(context, ref),
-                    tooltip: 'Delete category',
                   ),
                 ),
-            ],
+                // Edit icon
+                InkWell(
+                  onTap: () => _showEditDialog(context, ref),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Icon(
+                      Icons.edit_outlined,
+                      size: 18,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+                // Delete icon (only for custom categories)
+                if (!category.isDefault)
+                  InkWell(
+                    onTap: () => _handleDelete(context, ref),
+                    child: Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: Icon(
+                        Icons.delete_outline,
+                        size: 18,
+                        color: theme.colorScheme.error,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -115,77 +128,70 @@ class CategoryListItem extends ConsumerWidget {
   }
 
   Future<void> _handleDelete(BuildContext context, WidgetRef ref) async {
-    // First, get the expense count
-    final actions = ref.read(categoryActionsProvider);
-    final expenseCount = await actions.getCategoryExpenseCount(
-      categoryId: category.id,
-    );
-
-    if (!context.mounted) return;
-
-    if (expenseCount != null && expenseCount > 0) {
-      // Show error - cannot delete category with expenses
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Cannot Delete Category'),
-          content: Text(
-            'This category has $expenseCount expense${expenseCount == 1 ? '' : 's'}. '
-            'Please reassign all expenses to another category before deleting.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('OK'),
-            ),
-          ],
-        ),
-      );
-      return;
-    }
-
     // Show confirmation dialog
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Category'),
+        title: const Text('Elimina Categoria'),
         content: Text(
-          'Are you sure you want to delete "${category.name}"? This action cannot be undone.',
+          'Vuoi eliminare "${category.name}"?\n\nNota: Se la categoria ha spese associate, la cancellazione fallirà.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: const Text('Annulla'),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,
             ),
-            child: const Text('Delete'),
+            child: const Text('Elimina'),
           ),
         ],
       ),
     );
 
-    if (confirmed == true && context.mounted) {
-      // Delete the category
-      final success = await actions.deleteCategory(
-        groupId: groupId,
-        categoryId: category.id,
-      );
+    if (confirmed != true || !context.mounted) return;
 
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              success
-                  ? 'Category deleted successfully'
-                  : 'Failed to delete category',
-            ),
+    // Delete the category - let database constraints handle validation
+    final actions = ref.read(categoryActionsProvider);
+    final result = await actions.deleteCategory(
+      groupId: groupId,
+      categoryId: category.id,
+    );
+
+    if (!context.mounted) return;
+
+    if (result.success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('✓ Categoria eliminata con successo'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } else {
+      // Show detailed error message
+      final errorMsg = result.errorMessage ?? 'Impossibile eliminare la categoria';
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.error_outline, color: Theme.of(context).colorScheme.error),
+              const SizedBox(width: 8),
+              const Text('Errore'),
+            ],
           ),
-        );
-      }
+          content: Text(errorMsg),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
     }
   }
 }

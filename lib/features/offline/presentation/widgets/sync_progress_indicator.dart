@@ -156,7 +156,8 @@ class SyncResult {
     required this.conflicts,
   });
 
-  bool get allSuccess => processed == successful && failed == 0 && conflicts == 0;
+  bool get allSuccess =>
+      processed == successful && failed == 0 && conflicts == 0;
   bool get hasFailures => failed > 0;
   bool get hasConflicts => conflicts > 0;
 }

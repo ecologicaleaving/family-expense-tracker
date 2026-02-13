@@ -15,7 +15,8 @@ class OfflineExpenseEntity extends Equatable {
   final bool isGroupExpense;
   final String? localReceiptPath;
   final int? receiptImageSize;
-  final String syncStatus; // 'pending', 'syncing', 'completed', 'failed', 'conflict'
+  final String
+      syncStatus; // 'pending', 'syncing', 'completed', 'failed', 'conflict'
   final int retryCount;
   final DateTime? lastSyncAttemptAt;
   final String? syncErrorMessage;

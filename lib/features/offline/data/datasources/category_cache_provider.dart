@@ -9,7 +9,8 @@ final offlineDatabaseProvider = Provider<OfflineDatabase>((ref) {
 });
 
 /// Provider for category cache datasource
-final categoryCacheDataSourceProvider = Provider<CategoryCacheDataSource>((ref) {
+final categoryCacheDataSourceProvider =
+    Provider<CategoryCacheDataSource>((ref) {
   final database = ref.watch(offlineDatabaseProvider);
   return CategoryCacheDataSourceImpl(database: database);
 });

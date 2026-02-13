@@ -92,8 +92,8 @@ class OfflineImageLocalDataSourceImpl implements OfflineImageLocalDataSource {
   @override
   Future<List<OfflineExpenseImage>> getPendingUploads(String userId) async {
     return await (_db.select(_db.offlineExpenseImages)
-          ..where((tbl) =>
-              tbl.userId.equals(userId) & tbl.uploaded.equals(false))
+          ..where(
+              (tbl) => tbl.userId.equals(userId) & tbl.uploaded.equals(false))
           ..orderBy([
             (tbl) => OrderingTerm.asc(tbl.localCreatedAt),
           ]))

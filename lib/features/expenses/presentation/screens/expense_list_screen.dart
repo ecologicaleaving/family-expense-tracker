@@ -38,6 +38,27 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+
+    // Load initial data - load multiple pages to ensure we have past months
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final listState = ref.read(expenseListProvider);
+
+      // Debug: check if there are date filters
+      if (listState.filterStartDate != null || listState.filterEndDate != null) {
+        print('⚠️ [ExpenseList] Date filters active: ${listState.filterStartDate} to ${listState.filterEndDate}');
+      }
+
+      if (listState.expenses.isEmpty && !listState.isLoading) {
+        // Load first batch
+        await ref.read(expenseListProvider.notifier).loadExpenses(refresh: true);
+
+        // Load second batch to ensure we have previous months
+        await Future.delayed(const Duration(milliseconds: 300));
+        if (mounted) {
+          await ref.read(expenseListProvider.notifier).loadMore();
+        }
+      }
+    });
   }
 
   @override

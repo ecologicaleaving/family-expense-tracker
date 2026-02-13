@@ -212,7 +212,8 @@ class OfflineExpenseLocalDataSourceImpl
     if (userId == null) return;
 
     await (_db.delete(_db.offlineExpenses)
-          ..where((tbl) => tbl.id.equals(expenseId) & tbl.userId.equals(userId)))
+          ..where(
+              (tbl) => tbl.id.equals(expenseId) & tbl.userId.equals(userId)))
         .go();
   }
 
@@ -264,8 +265,7 @@ class OfflineExpenseLocalDataSourceImpl
 
   @override
   Future<void> deleteCompletedSyncItems(List<int> itemIds) async {
-    await (_db.delete(_db.syncQueueItems)
-          ..where((tbl) => tbl.id.isIn(itemIds)))
+    await (_db.delete(_db.syncQueueItems)..where((tbl) => tbl.id.isIn(itemIds)))
         .go();
   }
 
@@ -305,14 +305,16 @@ class OfflineExpenseLocalDataSourceImpl
       categoryId: categoryId != null ? Value(categoryId) : const Value.absent(),
       merchant: merchant != null ? Value(merchant) : const Value.absent(),
       notes: notes != null ? Value(notes) : const Value.absent(),
-      isGroupExpense: isGroupExpense != null ? Value(isGroupExpense) : const Value.absent(),
+      isGroupExpense:
+          isGroupExpense != null ? Value(isGroupExpense) : const Value.absent(),
       localUpdatedAt: Value(now),
       syncStatus: const Value('pending'), // Reset to pending
     );
 
     // Update offline expense
     await (_db.update(_db.offlineExpenses)
-          ..where((tbl) => tbl.id.equals(expenseId) & tbl.userId.equals(userId)))
+          ..where(
+              (tbl) => tbl.id.equals(expenseId) & tbl.userId.equals(userId)))
         .write(companion);
 
     // Get updated expense
@@ -347,7 +349,8 @@ class OfflineExpenseLocalDataSourceImpl
   }) async {
     // Delete from offline expenses table
     await (_db.delete(_db.offlineExpenses)
-          ..where((tbl) => tbl.id.equals(expenseId) & tbl.userId.equals(userId)))
+          ..where(
+              (tbl) => tbl.id.equals(expenseId) & tbl.userId.equals(userId)))
         .go();
 
     // T071: Update sync queue to 'delete' operation (replace previous queue items)

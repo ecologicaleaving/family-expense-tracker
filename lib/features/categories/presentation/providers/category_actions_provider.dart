@@ -105,7 +105,7 @@ class CategoryActions {
   }
 
   /// Delete category
-  Future<bool> deleteCategory({
+  Future<({bool success, String? errorMessage})> deleteCategory({
     required String groupId,
     required String categoryId,
   }) async {
@@ -117,13 +117,13 @@ class CategoryActions {
 
     return result.fold(
       (failure) {
-        // Handle error
-        return false;
+        // Return error message
+        return (success: false, errorMessage: failure.message);
       },
       (_) {
         // Refresh category state
         _ref.read(categoryProvider(groupId).notifier).loadCategories();
-        return true;
+        return (success: true, errorMessage: null);
       },
     );
   }

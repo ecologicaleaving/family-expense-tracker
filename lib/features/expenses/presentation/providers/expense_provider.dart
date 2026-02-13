@@ -134,9 +134,15 @@ class ExpenseListNotifier extends StateNotifier<ExpenseListState> {
         );
       },
       (expenses) {
+        final newExpenses = refresh ? expenses : [...state.expenses, ...expenses];
+        print('📊 [ExpenseProvider] Loaded ${expenses.length} expenses, total: ${newExpenses.length}, hasMore: ${expenses.length >= _pageSize}');
+        if (newExpenses.isNotEmpty) {
+          final dates = newExpenses.map((e) => e.date).toSet().toList()..sort();
+          print('📅 [ExpenseProvider] Date range: ${dates.first} to ${dates.last}');
+        }
         state = state.copyWith(
           status: ExpenseListStatus.loaded,
-          expenses: refresh ? expenses : [...state.expenses, ...expenses],
+          expenses: newExpenses,
           hasMore: expenses.length >= _pageSize,
         );
       },

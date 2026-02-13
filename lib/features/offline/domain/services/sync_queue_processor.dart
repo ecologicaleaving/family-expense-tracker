@@ -82,15 +82,18 @@ class SyncQueueProcessor {
       final batchResults = <String, SyncItemResult>{};
 
       if (creates.isNotEmpty) {
-        batchResults.addAll(await _batchSyncService.batchCreateExpenses(creates));
+        batchResults
+            .addAll(await _batchSyncService.batchCreateExpenses(creates));
       }
 
       if (updates.isNotEmpty) {
-        batchResults.addAll(await _batchSyncService.batchUpdateExpenses(updates));
+        batchResults
+            .addAll(await _batchSyncService.batchUpdateExpenses(updates));
       }
 
       if (deletes.isNotEmpty) {
-        batchResults.addAll(await _batchSyncService.batchDeleteExpenses(deletes));
+        batchResults
+            .addAll(await _batchSyncService.batchDeleteExpenses(deletes));
       }
 
       // Update queue items based on results
@@ -99,7 +102,8 @@ class SyncQueueProcessor {
       // Update statistics
       totalProcessed += batchResults.length;
       totalSuccessful += batchResults.values.where((r) => r.success).length;
-      totalFailed += batchResults.values.where((r) => !r.success && !r.isConflict).length;
+      totalFailed +=
+          batchResults.values.where((r) => !r.success && !r.isConflict).length;
       totalConflicts += batchResults.values.where((r) => r.isConflict).length;
 
       // If batch was not full, we're done
