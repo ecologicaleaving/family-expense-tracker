@@ -304,11 +304,22 @@ class CategoryRemoteDataSourceImpl implements CategoryRemoteDataSource {
   @override
   Future<void> deleteCategory({required String categoryId}) async {
     try {
+      print('🗑️ [DELETE] Starting delete for category: $categoryId');
+      print('🗑️ [DELETE] User ID: ${supabaseClient.auth.currentUser?.id}');
+
       await supabaseClient
           .from('expense_categories')
           .delete()
           .eq('id', categoryId);
+
+      print('🗑️ [DELETE] Delete successful');
     } on PostgrestException catch (e) {
+      print('❌ [DELETE] PostgrestException caught:');
+      print('   Code: ${e.code}');
+      print('   Message: ${e.message}');
+      print('   Details: ${e.details}');
+      print('   Hint: ${e.hint}');
+
       // Check for foreign key constraint violation
       if (e.code == '23503') {
         throw const ValidationException(
@@ -323,6 +334,8 @@ class CategoryRemoteDataSourceImpl implements CategoryRemoteDataSource {
       }
       throw ServerException(e.message, e.code);
     } catch (e) {
+      print('❌ [DELETE] Generic exception caught: $e');
+      print('   Type: ${e.runtimeType}');
       throw ServerException('Failed to delete category: $e');
     }
   }
@@ -383,8 +396,19 @@ class CategoryRemoteDataSourceImpl implements CategoryRemoteDataSource {
 
       return response.count;
     } on PostgrestException catch (e) {
+      // If table doesn't exist (schema cache error), return 0
+      if (e.message.contains('recurring_expenses') &&
+          e.message.contains('schema cache')) {
+        print('⚠️ recurring_expenses table not found, returning 0');
+        return 0;
+      }
       throw ServerException(e.message, e.code);
     } catch (e) {
+      // If table doesn't exist, return 0 instead of failing
+      if (e.toString().contains('recurring_expenses')) {
+        print('⚠️ recurring_expenses table not found, returning 0');
+        return 0;
+      }
       throw ServerException(
         'Failed to get category recurring expense count: $e',
       );
