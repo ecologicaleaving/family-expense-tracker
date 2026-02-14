@@ -2,7 +2,7 @@
 
 ## 🎯 Configurazione Completa
 
-Finn è configurato per usare **Supabase self-hosted** su VPS CiccioHouse (80/20 Solutions).
+Finn è configurato per usare **Supabase self-hosted** sul VPS 8020solutions.org.
 
 ### 📦 Ambienti Disponibili
 
@@ -11,7 +11,7 @@ Finn è configurato per usare **Supabase self-hosted** su VPS CiccioHouse (80/20
 
 ---
 
-## 🚀 Setup Locale
+## 🚀 Setup sul PC Locale
 
 ### 1. Installare Dipendenze
 
@@ -20,11 +20,21 @@ cd finn
 flutter pub get
 ```
 
-### 2. Configurazione Ambiente
+### 2. Configurare Ambiente
 
-I file `.env.dev` e `.env.prod` sono già configurati con le credenziali corrette.
+I file `.env.dev` e `.env.prod` sono già configurati con gli endpoint corretti:
 
-**NON servono modifiche** per iniziare a sviluppare!
+**Development (.env.dev):**
+```env
+SUPABASE_URL=https://dev.8020solutions.org
+SUPABASE_ANON_KEY=sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH
+```
+
+**Production (.env.prod):**
+```env
+SUPABASE_URL=https://api.8020solutions.org
+SUPABASE_ANON_KEY=sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH
+```
 
 ### 3. Lanciare l'App
 
@@ -40,93 +50,59 @@ I file `.env.dev` e `.env.prod` sono già configurati con le credenziali corrett
 
 **Manuale (se script non funziona):**
 ```bash
-# Copia ambiente
+# Development
 cp .env.dev .env
-
-# Lancia app
 flutter run
+
+# Production
+cp .env.prod .env
+flutter run --release
 ```
 
 ---
 
 ## 🔍 Verifica Connessione
 
-### Test API da terminale:
+### Test API:
 ```bash
 curl https://dev.8020solutions.org/
 ```
 
-### Studio UI (Browser):
-- Dev Studio: Accesso via VPS (SSH tunnel temporaneo se necessario)
-- Prod Studio: Accesso via VPS
-
-### Database Diretto:
+### Studio UI (via tunnel temporaneo):
+```bash
+ssh -L 54323:127.0.0.1:54323 root@46.225.60.101
 ```
-# Via SSH tunnel (se necessario)
-ssh -L 54322:127.0.0.1:54322 root@46.225.60.101
-
-# Poi connetti con:
-postgresql://postgres:postgres@localhost:54322/postgres
-```
-
----
-
-## 📝 File Configurazione
-
-```
-.env.dev      → Development (dev.8020solutions.org)
-.env.prod     → Production (api.8020solutions.org)
-.env.example  → Template (per riferimento)
-```
-
-**⚠️ NON committare mai** `.env.dev` o `.env.prod`! Sono in `.gitignore`.
-
----
-
-## 🆚 Prima vs Dopo
-
-### PRIMA (Tunnel SSH)
-```
-❌ Serviva tunnel: ssh -L 54321:...
-❌ Solo localhost
-⚠️ HTTP non sicuro
-```
-
-### DOPO (HTTPS Diretto)
-```
-✅ Nessun tunnel necessario
-✅ Accessibile ovunque
-✅ HTTPS con SSL
-✅ Più semplice da debuggare
-```
+Poi: http://localhost:54323
 
 ---
 
 ## ⚠️ Troubleshooting
 
 **Errore: "SUPABASE_URL not configured"**
-→ Assicurati che `.env` esista (copiato da `.env.dev` o `.env.prod`)
+→ Assicurati che esista il file `.env` nella root del progetto
+→ Lo script `run_dev.sh` lo crea automaticamente
 
 **Errore: "Connection refused"**
-→ Verifica che Supabase Dev sia running sul VPS:
+→ Verifica che Supabase sia attivo sul VPS:
 ```bash
 ssh root@46.225.60.101 "cd ~/supabase-cli && supabase status"
 ```
 
-**Errore: "SSL certificate problem"**
-→ Verifica certificato SSL:
-```bash
-curl -v https://dev.8020solutions.org 2>&1 | grep -i ssl
-```
+**Errore: "Invalid API key"**
+→ Verifica che la chiave in `.env.dev` sia corretta
+
+---
+
+## 📝 Note Importanti
+
+- **Nessun tunnel SSH necessario!** Tutto via HTTPS
+- I file `.env*` sono già in `.gitignore`
+- `flutter_dotenv` legge automaticamente da `.env`
+- Hot reload funziona normalmente
+- Le migrazioni Supabase sono in `supabase/migrations/`
 
 ---
 
 ## 🎉 Ready to Code!
 
-Ora puoi sviluppare in locale con:
-- ✅ Hot reload completo
-- ✅ Backend VPS sicuro
-- ✅ Dev/Prod separati
-- ✅ Zero tunnel SSH
-
-**Buon coding! 💰📊**
+Ora puoi sviluppare Finn con Supabase backend sempre disponibile! 💰😎
